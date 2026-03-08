@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
-	"github.com/y0s3ph/gitops-bootstrap/internal/templates"
+	"github.com/y0s3ph/gostrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/templates"
 )
 
 type Result struct {

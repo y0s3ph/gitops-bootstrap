@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/models"
 )
 
 const sealedSecretsManifestURL = "https://github.com/bitnami-labs/sealed-secrets/releases/download/v%s/controller.yaml"

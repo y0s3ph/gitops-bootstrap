@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/models"
 )
 
 func TestScaffoldApp_CreatesBaseManifests(t *testing.T) {

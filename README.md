@@ -1,4 +1,4 @@
-# gitops-bootstrap
+# gostrap
 
 > From zero to GitOps in one command — opinionated CLI to bootstrap a production-ready GitOps workflow on any Kubernetes cluster.
 
@@ -17,7 +17,7 @@ Adopting GitOps is widely accepted as a best practice, but getting started is su
 - **Tribal knowledge**: Most teams figure it out through blog posts, trial and error, and copying from previous jobs. The "right" structure lives in someone's head, not in code.
 - **Inconsistency**: Every team in the organization ends up with a slightly different GitOps setup, making platform support harder.
 
-**gitops-bootstrap** solves this by encoding opinionated best practices into a single CLI that scaffolds a complete, production-ready GitOps workflow in minutes.
+**gostrap** solves this by encoding opinionated best practices into a single CLI that scaffolds a complete, production-ready GitOps workflow in minutes.
 
 ## Core Principles
 
@@ -31,7 +31,7 @@ Adopting GitOps is widely accepted as a best practice, but getting started is su
 
 ## What It Sets Up
 
-Running `gitops-bootstrap init` on a cluster produces:
+Running `gostrap init` on a cluster produces:
 
 ### In the Cluster
 
@@ -131,11 +131,11 @@ gitops-repo/
 
 ### Phase 3 — Day-2 Operations
 
-- [ ] `gitops-bootstrap add-app <name>` — scaffold a new application with all environments
-- [ ] `gitops-bootstrap add-env <name>` — add a new environment to all applications
-- [ ] `gitops-bootstrap validate` — lint the repo structure and check for common mistakes
-- [ ] `gitops-bootstrap diff <env-a> <env-b>` — compare configuration between environments
-- [ ] `gitops-bootstrap promote <app> --from dev --to staging` — generate promotion PR
+- [ ] `gostrap add-app <name>` — scaffold a new application with all environments
+- [ ] `gostrap add-env <name>` — add a new environment to all applications
+- [ ] `gostrap validate` — lint the repo structure and check for common mistakes
+- [ ] `gostrap diff <env-a> <env-b>` — compare configuration between environments
+- [ ] `gostrap promote <app> --from dev --to staging` — generate promotion PR
 - [ ] Pre-commit hooks for manifest validation (kubeval, kustomize build)
 
 ### Phase 4 — Platform Integration
@@ -151,7 +151,7 @@ gitops-repo/
 
 ```mermaid
 graph TD
-    subgraph CLI["gitops-bootstrap CLI"]
+    subgraph CLI["gostrap CLI"]
         Wizard["<b>Wizard</b><br/>Interactive prompts<br/>Config file<br/>Flags"]
         Scaffolder["<b>Scaffolder</b><br/>Repo structure<br/>Templates<br/>Docs"]
         Installer["<b>Installer</b><br/>Helm Go SDK<br/>client-go<br/>Health checks"]
@@ -194,10 +194,10 @@ graph TD
 
 ```bash
 # Interactive wizard (recommended for first-time setup)
-gitops-bootstrap init
+gostrap init
 
 # Non-interactive with flags
-gitops-bootstrap init \
+gostrap init \
   --controller argocd \
   --controller-version 2.13.1 \
   --secrets sealed-secrets \
@@ -206,26 +206,26 @@ gitops-bootstrap init \
   --cluster-context prod-eu-west-1
 
 # From config file (for reproducibility / team standardization)
-gitops-bootstrap init --config bootstrap-config.yaml
+gostrap init --config bootstrap-config.yaml
 
 # Add a new application to the existing structure
-gitops-bootstrap add-app my-new-service \
+gostrap add-app my-new-service \
   --type deployment \
   --port 8080 \
   --has-ingress \
   --has-hpa
 
 # Add a new environment
-gitops-bootstrap add-env qa --base staging
+gostrap add-env qa --base staging
 
 # Validate repo structure
-gitops-bootstrap validate ./gitops-repo
+gostrap validate ./gitops-repo
 
 # Compare environments
-gitops-bootstrap diff dev production --app my-api
+gostrap diff dev production --app my-api
 
 # Promote an app between environments
-gitops-bootstrap promote my-api --from staging --to production
+gostrap promote my-api --from staging --to production
 ```
 
 ### Example Config File
@@ -284,10 +284,10 @@ policies:
 ### Interactive Wizard Flow (Planned)
 
 ```
-$ gitops-bootstrap init
+$ gostrap init
 
   ╭─────────────────────────────────────────╮
-  │        gitops-bootstrap v0.1.0          │
+  │            gostrap v0.1.0               │
   │   From zero to GitOps in one command    │
   ╰─────────────────────────────────────────╯
 
@@ -365,9 +365,9 @@ Helm charts are great for distributing reusable software, but they're a poor fit
 ## Project Structure (Planned)
 
 ```
-gitops-bootstrap/
+gostrap/
 ├── cmd/
-│   └── gitops-bootstrap/
+│   └── gostrap/
 │       └── main.go                 # Entrypoint
 ├── internal/
 │   ├── wizard/
@@ -422,7 +422,7 @@ gitops-bootstrap/
 | [Kubefirst](https://kubefirst.io/) | Full platform (CI/CD, secrets, IDP), heavier scope, includes cloud provisioning. |
 | [Backstage](https://backstage.io/) | Developer portal with scaffolding capabilities, much larger scope. |
 
-**gitops-bootstrap** differentiates by being lightweight, controller-agnostic, and focused exclusively on the GitOps repo structure + controller setup — without trying to be an entire platform.
+**gostrap** differentiates by being lightweight, controller-agnostic, and focused exclusively on the GitOps repo structure + controller setup — without trying to be an entire platform.
 
 ## Development
 
@@ -436,7 +436,7 @@ gitops-bootstrap/
 ### Build
 
 ```bash
-go build -o gitops-bootstrap ./cmd/gitops-bootstrap/
+go build -o gostrap ./cmd/gostrap/
 ```
 
 ### Test
@@ -463,7 +463,7 @@ Scripts in `hack/` manage a local [kind](https://kind.sigs.k8s.io/) cluster prec
 
 ```bash
 # Build and run the wizard in non-interactive mode
-go run ./cmd/gitops-bootstrap/ init \
+go run ./cmd/gostrap/ init \
   --controller argocd \
   --secrets sealed-secrets \
   --environments dev,staging,production \

@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/models"
 )
 
 // LoadConfig reads a YAML config file and returns a validated BootstrapConfig.

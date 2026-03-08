@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/models"
 )
 
 func writeTestConfig(t *testing.T, content string) string {

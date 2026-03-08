@@ -1,4 +1,4 @@
-module github.com/y0s3ph/gitops-bootstrap
+module github.com/y0s3ph/gostrap
 
 go 1.23.6
 

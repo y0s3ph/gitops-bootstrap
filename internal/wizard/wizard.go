@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/models"
 )
 
 var (
@@ -26,7 +26,7 @@ var (
 )
 
 func banner() string {
-	title := titleStyle.Render("gitops-bootstrap")
+	title := titleStyle.Render("gostrap")
 	subtitle := subtitleStyle.Render("From zero to GitOps in one command")
 	return fmt.Sprintf("\n  %s\n  %s\n", title, subtitle)
 }

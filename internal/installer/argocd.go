@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/models"
 )
 
 // ProgressFunc is called after each installation step completes.

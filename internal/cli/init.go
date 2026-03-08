@@ -7,10 +7,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
-	"github.com/y0s3ph/gitops-bootstrap/internal/installer"
-	"github.com/y0s3ph/gitops-bootstrap/internal/models"
-	"github.com/y0s3ph/gitops-bootstrap/internal/scaffolder"
-	"github.com/y0s3ph/gitops-bootstrap/internal/wizard"
+	"github.com/y0s3ph/gostrap/internal/installer"
+	"github.com/y0s3ph/gostrap/internal/models"
+	"github.com/y0s3ph/gostrap/internal/scaffolder"
+	"github.com/y0s3ph/gostrap/internal/wizard"
 )
 
 var successStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#04B575"))
