@@ -117,7 +117,7 @@ gitops-repo/
 - [x] Scaffold example application with full environment promotion path
 - [x] Generate RBAC manifests for the GitOps controller
 - [x] Generate documentation (ARCHITECTURE.md, ADDING-AN-APP.md, SECRETS.md)
-- [ ] Install ArgoCD (Helm-based, pinned version) with opinionated defaults
+- [x] Install ArgoCD (pinned version) with opinionated defaults and health checks
 - [ ] Sealed Secrets setup with key generation and backup instructions
 
 ### Phase 2 — Flux Support & Advanced Secrets
