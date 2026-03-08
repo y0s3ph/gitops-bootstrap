@@ -40,6 +40,10 @@ func (s *Scaffolder) Scaffold() (*Result, error) {
 		return nil, fmt.Errorf("rendering bootstrap manifests: %w", err)
 	}
 
+	if err := s.renderSecretsBootstrap(); err != nil {
+		return nil, fmt.Errorf("rendering secrets bootstrap: %w", err)
+	}
+
 	if err := s.renderAppOfApps(); err != nil {
 		return nil, fmt.Errorf("rendering App of Apps: %w", err)
 	}
@@ -106,6 +110,28 @@ func (s *Scaffolder) renderBootstrap() error {
 		{"bootstrap/argocd/argocd-cm-patch.yaml.tmpl", "bootstrap/argocd/argocd-cm-patch.yaml"},
 		{"bootstrap/argocd/argocd-rbac-cm-patch.yaml.tmpl", "bootstrap/argocd/argocd-rbac-cm-patch.yaml"},
 		{"bootstrap/argocd/appproject-default.yaml.tmpl", "bootstrap/argocd/appproject-default.yaml"},
+	}
+
+	for _, tf := range tmplFiles {
+		if err := s.renderTemplate(tf.tmplPath, tf.outPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Scaffolder) renderSecretsBootstrap() error {
+	if s.config.Secrets.Type != models.SecretsSealedSecrets {
+		return nil
+	}
+
+	tmplFiles := []struct {
+		tmplPath string
+		outPath  string
+	}{
+		{"bootstrap/sealed-secrets/kustomization.yaml.tmpl", "bootstrap/sealed-secrets/kustomization.yaml"},
+		{"bootstrap/sealed-secrets/sealedsecret-example.yaml.tmpl", "bootstrap/sealed-secrets/sealedsecret-example.yaml"},
 	}
 
 	for _, tf := range tmplFiles {
