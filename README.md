@@ -112,7 +112,7 @@ gitops-repo/
 
 - [x] Interactive CLI wizard: choose GitOps controller, secrets manager, environments
 - [x] Non-interactive mode via flags/config file for CI/automation
-- [ ] Generate repo structure following App of Apps pattern
+- [x] Generate repo structure following App of Apps pattern
 - [ ] Kustomize-based environment management (base + overlays)
 - [ ] Scaffold example application with full environment promotion path
 - [ ] Generate RBAC manifests for the GitOps controller
