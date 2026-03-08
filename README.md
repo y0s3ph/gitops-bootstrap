@@ -110,8 +110,8 @@ gitops-repo/
 
 ### Phase 1 — Core Bootstrap
 
-- [ ] Interactive CLI wizard: choose GitOps controller, secrets manager, environments
-- [ ] Non-interactive mode via flags/config file for CI/automation
+- [x] Interactive CLI wizard: choose GitOps controller, secrets manager, environments
+- [x] Non-interactive mode via flags/config file for CI/automation
 - [ ] Install ArgoCD (Helm-based, pinned version) with opinionated defaults
 - [ ] Generate repo structure following App of Apps pattern
 - [ ] Kustomize-based environment management (base + overlays)
