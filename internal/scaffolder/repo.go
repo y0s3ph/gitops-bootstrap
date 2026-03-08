@@ -44,6 +44,12 @@ func (s *Scaffolder) Scaffold() (*Result, error) {
 		return nil, fmt.Errorf("rendering App of Apps: %w", err)
 	}
 
+	if s.config.ScaffoldExample {
+		if err := s.ScaffoldApp("example-api", 8080); err != nil {
+			return nil, fmt.Errorf("scaffolding example app: %w", err)
+		}
+	}
+
 	return &s.result, nil
 }
 
@@ -110,6 +116,10 @@ func (s *Scaffolder) renderAppOfApps() error {
 }
 
 func (s *Scaffolder) renderTemplate(tmplPath, outPath string) error {
+	return s.renderTemplateWithData(tmplPath, outPath, s.config)
+}
+
+func (s *Scaffolder) renderTemplateWithData(tmplPath, outPath string, data any) error {
 	content, err := templates.FS.ReadFile(tmplPath)
 	if err != nil {
 		return fmt.Errorf("reading template %s: %w", tmplPath, err)
@@ -121,7 +131,7 @@ func (s *Scaffolder) renderTemplate(tmplPath, outPath string) error {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, s.config); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return fmt.Errorf("executing template %s: %w", tmplPath, err)
 	}
 
