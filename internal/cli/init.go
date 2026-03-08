@@ -114,6 +114,23 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 		fmt.Println()
 		fmt.Println(successStyle.Render("✓ ArgoCD installed and ready"))
+
+		if cfg.Secrets.Type == models.SecretsSealedSecrets {
+			fmt.Println()
+			fmt.Printf("Setting up Sealed Secrets v%s...\n", cfg.Secrets.Version)
+			fmt.Println()
+
+			ssInstaller := installer.NewSealedSecrets(cfg)
+			if err := ssInstaller.Install(func(step string) {
+				fmt.Printf("  %s %s\n", successStyle.Render("✓"), step)
+			}); err != nil {
+				return fmt.Errorf("installing Sealed Secrets: %w", err)
+			}
+
+			fmt.Println()
+			fmt.Println(successStyle.Render("✓ Sealed Secrets ready"))
+		}
+
 		printPostInstallSteps(cfg)
 	} else {
 		printScaffoldOnlySteps(cfg)
@@ -132,6 +149,16 @@ func printPostInstallSteps(cfg *models.BootstrapConfig) {
 	fmt.Println(dimStyle.Render("Access ArgoCD UI:"))
 	fmt.Println("  kubectl -n argocd port-forward svc/argocd-server 8080:443")
 	fmt.Println("  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d")
+
+	if cfg.Secrets.Type == models.SecretsSealedSecrets {
+		fmt.Println()
+		fmt.Println(dimStyle.Render("Sealed Secrets — backup your key (critical!):"))
+		fmt.Println("  kubectl -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > sealed-secrets-key-backup.yaml")
+		fmt.Println("  # Store this backup securely — losing it means losing all sealed secrets")
+		fmt.Println()
+		fmt.Println(dimStyle.Render("Seal a secret:"))
+		fmt.Printf("  kubeseal --cert %s/bootstrap/sealed-secrets/pub-cert.pem --format yaml < secret.yaml\n", cfg.RepoPath)
+	}
 }
 
 func printScaffoldOnlySteps(cfg *models.BootstrapConfig) {
