@@ -118,7 +118,7 @@ gitops-repo/
 - [x] Generate RBAC manifests for the GitOps controller
 - [x] Generate documentation (ARCHITECTURE.md, ADDING-AN-APP.md, SECRETS.md)
 - [x] Install ArgoCD (pinned version) with opinionated defaults and health checks
-- [ ] Sealed Secrets setup with key generation and backup instructions
+- [x] Sealed Secrets setup with key export and backup instructions
 
 ### Phase 2 — Flux Support & Advanced Secrets
 
