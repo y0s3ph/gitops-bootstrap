@@ -159,16 +159,42 @@ func (s *Scaffolder) renderFluxBootstrap() error {
 }
 
 func (s *Scaffolder) renderSecretsBootstrap() error {
-	if s.config.Secrets.Type != models.SecretsSealedSecrets {
+	switch s.config.Secrets.Type {
+	case models.SecretsSealedSecrets:
+		return s.renderSealedSecretsBootstrap()
+	case models.SecretsESO:
+		return s.renderESOBootstrap()
+	default:
 		return nil
 	}
+}
 
+func (s *Scaffolder) renderSealedSecretsBootstrap() error {
 	tmplFiles := []struct {
 		tmplPath string
 		outPath  string
 	}{
 		{"bootstrap/sealed-secrets/kustomization.yaml.tmpl", "bootstrap/sealed-secrets/kustomization.yaml"},
 		{"bootstrap/sealed-secrets/sealedsecret-example.yaml.tmpl", "bootstrap/sealed-secrets/sealedsecret-example.yaml"},
+	}
+
+	for _, tf := range tmplFiles {
+		if err := s.renderTemplate(tf.tmplPath, tf.outPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Scaffolder) renderESOBootstrap() error {
+	tmplFiles := []struct {
+		tmplPath string
+		outPath  string
+	}{
+		{"bootstrap/external-secrets/kustomization.yaml.tmpl", "bootstrap/external-secrets/kustomization.yaml"},
+		{"bootstrap/external-secrets/clustersecretstore-example.yaml.tmpl", "bootstrap/external-secrets/clustersecretstore-example.yaml"},
+		{"bootstrap/external-secrets/externalsecret-example.yaml.tmpl", "bootstrap/external-secrets/externalsecret-example.yaml"},
 	}
 
 	for _, tf := range tmplFiles {

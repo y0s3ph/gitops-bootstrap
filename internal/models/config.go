@@ -12,6 +12,7 @@ const (
 const DefaultArgoCDVersion = "2.13.1"
 const DefaultFluxVersion = "2.8.1"
 const DefaultSealedSecretsVersion = "0.27.3"
+const DefaultESOVersion = "2.1.0"
 
 func DefaultControllerVersion(ct ControllerType) string {
 	switch ct {
@@ -28,6 +29,8 @@ func DefaultSecretsVersion(st SecretsType) string {
 	switch st {
 	case SecretsSealedSecrets:
 		return DefaultSealedSecretsVersion
+	case SecretsESO:
+		return DefaultESOVersion
 	default:
 		return ""
 	}
