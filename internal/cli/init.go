@@ -232,7 +232,7 @@ func printPostInstallSteps(cfg *models.BootstrapConfig) {
 		fmt.Println("  3. kubectl apply -f bootstrap/external-secrets/clustersecretstore-example.yaml")
 		fmt.Println()
 		fmt.Println(dimStyle.Render("Check ESO status:"))
-		fmt.Println("  kubectl -n external-secrets get all")
+		fmt.Println("  kubectl get deployments -l app.kubernetes.io/name=external-secrets")
 		fmt.Println("  kubectl get clustersecretstores")
 		fmt.Println("  kubectl get externalsecrets --all-namespaces")
 	}

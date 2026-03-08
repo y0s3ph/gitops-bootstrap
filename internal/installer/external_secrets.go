@@ -24,6 +24,10 @@ func NewESO(cfg *models.BootstrapConfig) *ESOInstaller {
 // Install deploys the External Secrets Operator onto the cluster,
 // waits for CRDs to become available, and verifies all controller
 // deployments reach a ready state.
+//
+// The upstream static manifest ships with namespace: default. We apply
+// with --server-side to handle the large manifest and check rollout
+// in the default namespace.
 func (e *ESOInstaller) Install(progress ProgressFunc) error {
 	if err := checkKubectl(); err != nil {
 		return err
@@ -46,7 +50,6 @@ func (e *ESOInstaller) Install(progress ProgressFunc) error {
 	}
 	for _, ctrl := range controllers {
 		if _, err := kubectl(e.clusterContext,
-			"-n", "external-secrets",
 			"rollout", "status",
 			ctrl,
 			"--timeout=300s",
