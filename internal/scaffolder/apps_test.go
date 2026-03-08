@@ -109,3 +109,87 @@ func TestScaffold_NoExampleAppWhenDisabled(t *testing.T) {
 	_, err = os.Stat(filepath.Join(repoPath, "environments/base/example-api"))
 	assert.True(t, os.IsNotExist(err), "example-api should not exist when ScaffoldExample is false")
 }
+
+// --- Flux app definition tests ---
+
+func TestScaffoldFluxApp_CreatesKustomizationPerEnvironment(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	for _, env := range []string{"dev", "staging", "production"} {
+		appFile := filepath.Join(repoPath, "apps", "my-api-"+env+".yaml")
+		_, err := os.Stat(appFile)
+		require.NoError(t, err, "Kustomization for %s should exist", env)
+	}
+}
+
+func TestScaffoldFluxApp_KustomizationPointsToOverlay(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-staging.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: Kustomization")
+	assert.Contains(t, content, "path: ./environments/staging/my-api")
+	assert.Contains(t, content, "targetNamespace: staging")
+	assert.Contains(t, content, "sourceRef:")
+	assert.Contains(t, content, "name: gitops-repo")
+}
+
+func TestScaffoldFluxApp_DevHasAutoPrune(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-dev.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "prune: true")
+	assert.NotContains(t, content, "suspend: true")
+}
+
+func TestScaffoldFluxApp_ProductionSuspended(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-production.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "suspend: true", "production should be suspended when AutoSync is false")
+	assert.Contains(t, content, "prune: false")
+}
+
+func TestScaffoldFluxApp_NoArgoCDReferences(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	for _, env := range []string{"dev", "staging", "production"} {
+		data, err := os.ReadFile(filepath.Join(repoPath, "apps", "my-api-"+env+".yaml"))
+		require.NoError(t, err)
+		content := string(data)
+		assert.NotContains(t, content, "argoproj.io", "Flux app should not contain ArgoCD references")
+	}
+}

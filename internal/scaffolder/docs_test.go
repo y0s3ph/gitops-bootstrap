@@ -143,3 +143,62 @@ func TestScaffold_TroubleshootingExists(t *testing.T) {
 	assert.Contains(t, content, "OutOfSync")
 	assert.Contains(t, content, "argocd-server")
 }
+
+// --- Flux docs tests ---
+
+func TestScaffoldFlux_ArchitectureContainsFluxInfo(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/ARCHITECTURE.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "Flux CD")
+	assert.Contains(t, content, "2.8.1")
+	assert.Contains(t, content, "Flux Kustomization")
+	assert.Contains(t, content, "GitRepository")
+	assert.NotContains(t, content, "App of Apps")
+}
+
+func TestScaffoldFlux_TroubleshootingContainsFluxInfo(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/TROUBLESHOOTING.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "source-controller")
+	assert.Contains(t, content, "kustomize-controller")
+	assert.NotContains(t, content, "argocd-server")
+	assert.NotContains(t, content, "OutOfSync")
+}
+
+func TestScaffoldFlux_AddingAppDocListsFluxKustomization(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/ADDING-AN-APP.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "Flux Kustomization")
+	assert.Contains(t, content, "kustomize.toolkit.fluxcd.io")
+	assert.NotContains(t, content, "argoproj.io")
+}

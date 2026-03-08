@@ -2,6 +2,8 @@
 
 Common issues and solutions for this GitOps setup.
 
+{{- if eq (printf "%s" .Controller.Type) "argocd"}}
+
 ## Application stuck in "OutOfSync"
 
 **Symptom:** ArgoCD shows the application as OutOfSync even after syncing.
@@ -41,6 +43,103 @@ kubectl -n <namespace> logs deployment/<app-name>
 1. Check `bootstrap/argocd/appproject-default.yaml` — ensure the target namespace is in the `destinations` list.
 2. If using a non-default project, verify its permissions.
 
+## ArgoCD UI not accessible
+
+```bash
+# Port-forward to access locally
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+# Get the initial admin password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
+
+## Useful commands
+
+```bash
+# Check sync status of all apps
+kubectl -n argocd get applications
+
+# Force refresh an app
+kubectl -n argocd patch application <app> --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+# View ArgoCD logs
+kubectl -n argocd logs deployment/argocd-application-controller
+kubectl -n argocd logs deployment/argocd-server
+```
+
+{{- else}}
+
+## Kustomization not reconciling
+
+**Symptom:** Changes pushed to Git are not applied to the cluster.
+
+**Checks:**
+```bash
+kubectl -n flux-system get kustomizations
+kubectl -n flux-system get gitrepositories
+kubectl -n flux-system describe kustomization <name>
+```
+
+**Common causes:**
+- GitRepository source fetch failed (wrong URL, credentials, or branch).
+- Kustomize build error in the target path. Run `kustomize build environments/<env>/<app>/` locally.
+- Kustomization is suspended. Resume with `kubectl -n flux-system patch kustomization <name> -p '{"spec":{"suspend":false}}'`.
+
+## Deployment stuck in Progressing
+
+**Symptom:** Deployment never reaches Ready.
+
+**Checks:**
+```bash
+kubectl -n <namespace> describe deployment <app-name>
+kubectl -n <namespace> get events --sort-by='.lastTimestamp'
+kubectl -n <namespace> logs deployment/<app-name>
+```
+
+**Common causes:**
+- Image pull errors (wrong image name/tag, missing pull secret).
+- Health probe failures (wrong path or port).
+- Insufficient resources (CPU/memory limits too low, or node has no capacity).
+
+## Reconciliation failed: "the server could not find the requested resource"
+
+**Cause:** A CRD is missing. This happens when a Kustomization depends on a CRD from another source.
+
+**Fix:** Use Flux's `dependsOn` field to declare ordering between Kustomizations.
+
+## GitRepository fetch failed
+
+**Checks:**
+```bash
+kubectl -n flux-system describe gitrepository gitops-repo
+kubectl -n flux-system logs deployment/source-controller
+```
+
+**Common causes:**
+- Repository URL incorrect or unreachable.
+- Authentication credentials missing or expired.
+- Branch name doesn't match the ref in the GitRepository spec.
+
+## Useful commands
+
+```bash
+# Check all Flux resources
+kubectl -n flux-system get all
+
+# Force reconciliation
+kubectl -n flux-system annotate --overwrite kustomization <name> reconcile.fluxcd.io/requestedAt="$(date +%s)"
+
+# View Flux controller logs
+kubectl -n flux-system logs deployment/source-controller
+kubectl -n flux-system logs deployment/kustomize-controller
+
+# Suspend/resume a kustomization
+kubectl -n flux-system patch kustomization <name> -p '{"spec":{"suspend":true}}'
+kubectl -n flux-system patch kustomization <name> -p '{"spec":{"suspend":false}}'
+```
+
+{{- end}}
+
 ## Sealed Secret not decrypting
 
 **Cause:** The SealedSecret was encrypted with a different cluster's public key.
@@ -64,28 +163,4 @@ kustomize build environments/<env>/<app>/
 # - Missing base reference (check the resources path in kustomization.yaml)
 # - Invalid patch format
 # - Duplicate resource names
-```
-
-## ArgoCD UI not accessible
-
-```bash
-# Port-forward to access locally
-kubectl -n argocd port-forward svc/argocd-server 8080:443
-
-# Get the initial admin password
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
-```
-
-## Useful commands
-
-```bash
-# Check sync status of all apps
-kubectl -n argocd get applications
-
-# Force refresh an app
-kubectl -n argocd patch application <app> --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
-
-# View ArgoCD logs
-kubectl -n argocd logs deployment/argocd-application-controller
-kubectl -n argocd logs deployment/argocd-server
 ```

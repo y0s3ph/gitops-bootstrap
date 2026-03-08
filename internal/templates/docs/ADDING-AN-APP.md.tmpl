@@ -59,6 +59,7 @@ labels:
     includeSelectors: false
 ```
 
+{{- if eq (printf "%s" .Controller.Type) "argocd"}}
 ## 3. Create ArgoCD Application definitions
 
 For each environment, create an Application YAML in `apps/`:
@@ -92,6 +93,36 @@ spec:
     syncOptions:
       - CreateNamespace=true
 ```
+{{- else}}
+## 3. Create Flux Kustomization definitions
+
+For each environment, create a Kustomization YAML in `apps/`:
+
+```
+{{- range .Environments}}
+apps/<app-name>-{{.Name}}.yaml
+{{- end}}
+```
+
+Each Kustomization points to the corresponding overlay:
+
+```yaml
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: <app-name>-<environment>
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  sourceRef:
+    kind: GitRepository
+    name: gitops-repo
+    namespace: flux-system
+  path: ./environments/<environment>/<app-name>
+  prune: true
+  targetNamespace: <environment>
+```
+{{- end}}
 
 ## 4. Commit and push
 
@@ -101,13 +132,21 @@ git commit -m "feat: onboard <app-name>"
 git push
 ```
 
+{{- if eq (printf "%s" .Controller.Type) "argocd"}}
 The root Application in `apps/_root.yaml` will detect the new files and ArgoCD will begin syncing automatically.
+{{- else}}
+The root Kustomization will detect the new files and Flux will reconcile them on the next interval.
+{{- end}}
 
 ## Quick checklist
 
 - [ ] Base manifests in `environments/base/<app>/`
 - [ ] Overlay per environment in `environments/<env>/<app>/`
+{{- if eq (printf "%s" .Controller.Type) "argocd"}}
 - [ ] ArgoCD Application per environment in `apps/`
+{{- else}}
+- [ ] Flux Kustomization per environment in `apps/`
+{{- end}}
 - [ ] Image tag set (do not use `:latest` in staging/production)
 - [ ] Resource requests and limits defined
 - [ ] Health probes configured

@@ -24,6 +24,20 @@ func testConfig(repoPath string) *models.BootstrapConfig {
 	}
 }
 
+func testFluxConfig(repoPath string) *models.BootstrapConfig {
+	return &models.BootstrapConfig{
+		Controller: models.ControllerConfig{
+			Type:    models.ControllerFlux,
+			Version: "2.8.1",
+		},
+		Secrets: models.SecretsConfig{
+			Type: models.SecretsSealedSecrets,
+		},
+		Environments: models.DefaultEnvironments(),
+		RepoPath:     repoPath,
+	}
+}
+
 func TestScaffold_CreatesDirectoryTree(t *testing.T) {
 	root := t.TempDir()
 	repoPath := filepath.Join(root, "gitops-repo")
@@ -293,4 +307,129 @@ func TestScaffold_KustomizationIncludesRBAC(t *testing.T) {
 	content := string(data)
 	assert.Contains(t, content, "appproject-default.yaml")
 	assert.Contains(t, content, "argocd-rbac-cm-patch.yaml")
+}
+
+// --- Flux-specific scaffolding tests ---
+
+func TestScaffoldFlux_CreatesFluxDirectoryTree(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	expectedDirs := []string{
+		"bootstrap/flux-system",
+		"bootstrap/sealed-secrets",
+		"apps",
+		"environments/base",
+		"environments/dev",
+		"environments/staging",
+		"environments/production",
+	}
+
+	for _, dir := range expectedDirs {
+		fullPath := filepath.Join(repoPath, dir)
+		info, err := os.Stat(fullPath)
+		require.NoError(t, err, "directory %s should exist", dir)
+		assert.True(t, info.IsDir(), "%s should be a directory", dir)
+	}
+
+	_, err = os.Stat(filepath.Join(repoPath, "bootstrap/argocd"))
+	assert.True(t, os.IsNotExist(err), "bootstrap/argocd should not exist when Flux is selected")
+}
+
+func TestScaffoldFlux_CreatesBootstrapManifests(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	expectedFiles := []string{
+		"bootstrap/flux-system/namespace.yaml",
+		"bootstrap/flux-system/kustomization.yaml",
+		"bootstrap/flux-system/gotk-sync.yaml",
+	}
+
+	for _, f := range expectedFiles {
+		fullPath := filepath.Join(repoPath, f)
+		_, err := os.Stat(fullPath)
+		require.NoError(t, err, "file %s should exist", f)
+	}
+}
+
+func TestScaffoldFlux_KustomizationReferencesUpstream(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/flux-system/kustomization.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "fluxcd/flux2/releases/download/v2.8.1/install.yaml")
+}
+
+func TestScaffoldFlux_GotKSyncContent(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/flux-system/gotk-sync.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: GitRepository")
+	assert.Contains(t, content, "kind: Kustomization")
+	assert.Contains(t, content, "name: gitops-repo")
+	assert.Contains(t, content, "path: ./apps")
+}
+
+func TestScaffoldFlux_CreatesRootWithFluxCRDs(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	rootApp := filepath.Join(repoPath, "apps/_root.yaml")
+	data, err := os.ReadFile(rootApp)
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: GitRepository")
+	assert.Contains(t, content, "kind: Kustomization")
+	assert.Contains(t, content, "path: ./apps")
+	assert.NotContains(t, content, "argoproj.io")
+}
+
+func TestScaffoldFlux_InjectsControllerVersion(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testFluxConfig(repoPath)
+	cfg.Controller.Version = "2.7.0"
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/flux-system/kustomization.yaml"))
+	require.NoError(t, err)
+
+	assert.Contains(t, string(data), "v2.7.0/install.yaml")
 }
