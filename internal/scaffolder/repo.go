@@ -61,9 +61,18 @@ func (s *Scaffolder) Scaffold() (*Result, error) {
 	return &s.result, nil
 }
 
+func (s *Scaffolder) controllerBootstrapDir() string {
+	switch s.config.Controller.Type {
+	case models.ControllerFlux:
+		return "bootstrap/flux-system"
+	default:
+		return "bootstrap/argocd"
+	}
+}
+
 func (s *Scaffolder) createDirectories() error {
 	dirs := []string{
-		"bootstrap/argocd",
+		s.controllerBootstrapDir(),
 		"apps",
 		"environments/base",
 		"platform",
@@ -101,6 +110,15 @@ func (s *Scaffolder) createDirectories() error {
 }
 
 func (s *Scaffolder) renderBootstrap() error {
+	switch s.config.Controller.Type {
+	case models.ControllerFlux:
+		return s.renderFluxBootstrap()
+	default:
+		return s.renderArgoCDBootstrap()
+	}
+}
+
+func (s *Scaffolder) renderArgoCDBootstrap() error {
 	tmplFiles := []struct {
 		tmplPath string
 		outPath  string
@@ -110,6 +128,25 @@ func (s *Scaffolder) renderBootstrap() error {
 		{"bootstrap/argocd/argocd-cm-patch.yaml.tmpl", "bootstrap/argocd/argocd-cm-patch.yaml"},
 		{"bootstrap/argocd/argocd-rbac-cm-patch.yaml.tmpl", "bootstrap/argocd/argocd-rbac-cm-patch.yaml"},
 		{"bootstrap/argocd/appproject-default.yaml.tmpl", "bootstrap/argocd/appproject-default.yaml"},
+	}
+
+	for _, tf := range tmplFiles {
+		if err := s.renderTemplate(tf.tmplPath, tf.outPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Scaffolder) renderFluxBootstrap() error {
+	tmplFiles := []struct {
+		tmplPath string
+		outPath  string
+	}{
+		{"bootstrap/flux-system/namespace.yaml.tmpl", "bootstrap/flux-system/namespace.yaml"},
+		{"bootstrap/flux-system/kustomization.yaml.tmpl", "bootstrap/flux-system/kustomization.yaml"},
+		{"bootstrap/flux-system/gotk-sync.yaml.tmpl", "bootstrap/flux-system/gotk-sync.yaml"},
 	}
 
 	for _, tf := range tmplFiles {
@@ -144,7 +181,11 @@ func (s *Scaffolder) renderSecretsBootstrap() error {
 }
 
 func (s *Scaffolder) renderAppOfApps() error {
-	return s.renderTemplate("apps/_root.yaml.tmpl", "apps/_root.yaml")
+	tmpl := "apps/_root.yaml.tmpl"
+	if s.config.Controller.Type == models.ControllerFlux {
+		tmpl = "apps/_root-flux.yaml.tmpl"
+	}
+	return s.renderTemplate(tmpl, "apps/_root.yaml")
 }
 
 func (s *Scaffolder) renderTemplate(tmplPath, outPath string) error {
