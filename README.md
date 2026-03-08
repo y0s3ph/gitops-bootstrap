@@ -112,13 +112,13 @@ gitops-repo/
 
 - [x] Interactive CLI wizard: choose GitOps controller, secrets manager, environments
 - [x] Non-interactive mode via flags/config file for CI/automation
-- [ ] Install ArgoCD (Helm-based, pinned version) with opinionated defaults
 - [ ] Generate repo structure following App of Apps pattern
 - [ ] Kustomize-based environment management (base + overlays)
-- [ ] Sealed Secrets setup with key generation and backup instructions
-- [ ] Generate RBAC manifests for the GitOps controller
 - [ ] Scaffold example application with full environment promotion path
+- [ ] Generate RBAC manifests for the GitOps controller
 - [ ] Generate documentation (ARCHITECTURE.md, ADDING-AN-APP.md, SECRETS.md)
+- [ ] Install ArgoCD (Helm-based, pinned version) with opinionated defaults
+- [ ] Sealed Secrets setup with key generation and backup instructions
 
 ### Phase 2 — Flux Support & Advanced Secrets
 
