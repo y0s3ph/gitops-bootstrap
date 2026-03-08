@@ -11,6 +11,7 @@ const (
 
 const DefaultArgoCDVersion = "2.13.1"
 const DefaultFluxVersion = "2.4.0"
+const DefaultSealedSecretsVersion = "0.27.3"
 
 func DefaultControllerVersion(ct ControllerType) string {
 	switch ct {
@@ -18,6 +19,15 @@ func DefaultControllerVersion(ct ControllerType) string {
 		return DefaultArgoCDVersion
 	case ControllerFlux:
 		return DefaultFluxVersion
+	default:
+		return ""
+	}
+}
+
+func DefaultSecretsVersion(st SecretsType) string {
+	switch st {
+	case SecretsSealedSecrets:
+		return DefaultSealedSecretsVersion
 	default:
 		return ""
 	}
@@ -44,7 +54,8 @@ type IngressConfig struct {
 }
 
 type SecretsConfig struct {
-	Type SecretsType `yaml:"type"`
+	Type    SecretsType `yaml:"type"`
+	Version string      `yaml:"version,omitempty"`
 }
 
 type EnvironmentConfig struct {

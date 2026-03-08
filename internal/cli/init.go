@@ -189,7 +189,8 @@ func buildConfigFromFlags() (*models.BootstrapConfig, error) {
 			Version: ver,
 		},
 		Secrets: models.SecretsConfig{
-			Type: models.SecretsType(initFlags.secrets),
+			Type:    models.SecretsType(initFlags.secrets),
+			Version: models.DefaultSecretsVersion(models.SecretsType(initFlags.secrets)),
 		},
 		Environments:    envs,
 		RepoPath:        repoPath,

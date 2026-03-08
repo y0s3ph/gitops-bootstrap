@@ -24,6 +24,9 @@ func LoadConfig(path string) (*models.BootstrapConfig, error) {
 	if cfg.Controller.Version == "" {
 		cfg.Controller.Version = models.DefaultControllerVersion(cfg.Controller.Type)
 	}
+	if cfg.Secrets.Version == "" {
+		cfg.Secrets.Version = models.DefaultSecretsVersion(cfg.Secrets.Type)
+	}
 	if len(cfg.Environments) == 0 {
 		cfg.Environments = models.DefaultEnvironments()
 	}

@@ -130,13 +130,15 @@ func Run() (*models.BootstrapConfig, error) {
 
 	envs := parseEnvironments(envsRaw)
 
+	st := models.SecretsType(secretsType)
 	cfg := &models.BootstrapConfig{
 		Controller: models.ControllerConfig{
 			Type:    ct,
 			Version: controllerVer,
 		},
 		Secrets: models.SecretsConfig{
-			Type: models.SecretsType(secretsType),
+			Type:    st,
+			Version: models.DefaultSecretsVersion(st),
 		},
 		Environments:    envs,
 		RepoPath:        repoPath,
