@@ -147,45 +147,16 @@ The deployment flow is: developers push code → CI builds and pushes a containe
 
 This separation gives you auditable deployments (every cluster change is a Git commit), rollback via `git revert`, and clear ownership boundaries between dev and ops.
 
-## Features (Planned)
+## Roadmap
 
-### Phase 1 — Core Bootstrap
+> Track progress and detailed issues on the [gostrap roadmap](https://github.com/users/y0s3ph/projects/1) board.
 
-- [x] Interactive CLI wizard: choose GitOps controller, secrets manager, environments
-- [x] Non-interactive mode via flags/config file for CI/automation
-- [x] Generate repo structure following App of Apps pattern
-- [x] Kustomize-based environment management (base + overlays)
-- [x] Scaffold example application with full environment promotion path
-- [x] Generate RBAC manifests for the GitOps controller
-- [x] Generate documentation (ARCHITECTURE.md, ADDING-AN-APP.md, SECRETS.md)
-- [x] Install ArgoCD (pinned version) with opinionated defaults and health checks
-- [x] Sealed Secrets setup with key export and backup instructions
-
-### Phase 2 — Flux Support & Advanced Secrets
-
-- [ ] Flux CD as alternative GitOps controller
-- [ ] External Secrets Operator integration (AWS Secrets Manager, Vault)
-- [ ] SOPS-based secrets as a third option
-- [ ] Multi-cluster support (hub-spoke model)
-- [ ] Helm chart support alongside Kustomize
-
-### Phase 3 — Day-2 Operations
-
-- [ ] `gostrap add-app <name>` — scaffold a new application with all environments
-- [ ] `gostrap add-env <name>` — add a new environment to all applications
-- [ ] `gostrap validate` — lint the repo structure and check for common mistakes
-- [ ] `gostrap diff <env-a> <env-b>` — compare configuration between environments
-- [ ] `gostrap promote <app> --from dev --to staging` — generate promotion PR
-- [ ] Pre-commit hooks for manifest validation (kubeval, kustomize build)
-
-### Phase 4 — Platform Integration
-
-- [ ] Notifications setup (Slack, Teams) for sync status
-- [ ] ArgoCD Notifications integration
-- [ ] Image Updater configuration for automated image promotions
-- [ ] GitHub Actions / GitLab CI workflow templates for PR-based promotions
-- [ ] Webhook configuration for automatic sync on push
-- [ ] Dashboard: terminal-based overview of sync status across environments
+| Phase | Milestone | Status | Summary |
+|---|---|---|---|
+| **1 — Core Bootstrap** | [v0.1.0](https://github.com/y0s3ph/gostrap/milestone/1?closed=1) | Done | Interactive wizard, repo scaffolding, ArgoCD installer, Sealed Secrets, documentation generation |
+| **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2) | Planned | Flux CD controller, External Secrets Operator, SOPS, multi-cluster, Helm chart support |
+| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | Planned | `add-app`, `add-env`, `validate`, `diff`, `promote` commands, pre-commit hooks |
+| **4 — Platform Integration** | [v0.4.0](https://github.com/y0s3ph/gostrap/milestone/4) | Planned | Notifications, Image Updater, CI workflow templates, webhooks, terminal dashboard |
 
 ## Architecture
 
