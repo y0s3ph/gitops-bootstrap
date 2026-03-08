@@ -1,0 +1,11 @@
+# SOPS configuration — defines encryption rules for this repository.
+# See https://github.com/getsops/sops#using-sops-yaml-conf-to-select-kms-pgp-and-age-for-new-files
+creation_rules:
+  # Encrypt only the 'data' and 'stringData' fields of Kubernetes Secrets.
+  # This keeps metadata (name, namespace, labels) readable in Git diffs.
+  - path_regex: environments/.*\.yaml$
+    encrypted_regex: ^(data|stringData)$
+    age: AGE-PUBLIC-KEY-PLACEHOLDER
+    # Replace with your age public key after running:
+    #   age-keygen -o age.key
+    #   cat age.key | grep "public key:"

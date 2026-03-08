@@ -22,3 +22,9 @@ spec:
   path: ./apps
   prune: true
   wait: true
+{{- if eq (printf "%s" .Secrets.Type) "sops"}}
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+{{- end}}

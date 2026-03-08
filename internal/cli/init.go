@@ -182,6 +182,18 @@ func installSecretsManager(cfg *models.BootstrapConfig) error {
 
 		fmt.Println()
 		fmt.Println(successStyle.Render("✓ External Secrets Operator ready"))
+
+	case models.SecretsSOPS:
+		fmt.Println()
+		fmt.Println("Setting up SOPS with age encryption...")
+		fmt.Println()
+
+		if err := installer.NewSOPS(cfg).Install(progress); err != nil {
+			return fmt.Errorf("setting up SOPS: %w", err)
+		}
+
+		fmt.Println()
+		fmt.Println(successStyle.Render("✓ SOPS encryption ready"))
 	}
 
 	return nil
@@ -235,6 +247,20 @@ func printPostInstallSteps(cfg *models.BootstrapConfig) {
 		fmt.Println("  kubectl get deployments -l app.kubernetes.io/name=external-secrets")
 		fmt.Println("  kubectl get clustersecretstores")
 		fmt.Println("  kubectl get externalsecrets --all-namespaces")
+
+	case models.SecretsSOPS:
+		fmt.Println()
+		fmt.Println(dimStyle.Render("SOPS — backup your age key (critical!):"))
+		fmt.Printf("  cp %s/bootstrap/sops/age.agekey ~/.config/sops/age/keys.txt\n", cfg.RepoPath)
+		fmt.Println("  # Store this key securely — losing it means losing all encrypted secrets")
+		fmt.Println()
+		fmt.Println(warnStyle.Render("  ⚠ Never commit age.agekey to Git"))
+		fmt.Println()
+		fmt.Println(dimStyle.Render("Encrypt a secret:"))
+		fmt.Println("  sops --encrypt --in-place environments/<env>/<app>/secret.yaml")
+		fmt.Println()
+		fmt.Println(dimStyle.Render("Edit an encrypted secret:"))
+		fmt.Println("  sops environments/<env>/<app>/secret.yaml")
 	}
 }
 

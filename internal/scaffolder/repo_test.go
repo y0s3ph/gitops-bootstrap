@@ -546,6 +546,151 @@ func TestScaffoldESO_ExternalSecretContent(t *testing.T) {
 	assert.Contains(t, content, "remoteRef:")
 }
 
+// --- SOPS-specific scaffolding tests ---
+
+func testSOPSConfig(repoPath string) *models.BootstrapConfig {
+	return &models.BootstrapConfig{
+		Controller: models.ControllerConfig{
+			Type:    models.ControllerArgoCD,
+			Version: "2.13.1",
+		},
+		Secrets: models.SecretsConfig{
+			Type: models.SecretsSOPS,
+		},
+		Environments: models.DefaultEnvironments(),
+		RepoPath:     repoPath,
+	}
+}
+
+func testSOPSFluxConfig(repoPath string) *models.BootstrapConfig {
+	return &models.BootstrapConfig{
+		Controller: models.ControllerConfig{
+			Type:    models.ControllerFlux,
+			Version: "2.8.1",
+		},
+		Secrets: models.SecretsConfig{
+			Type: models.SecretsSOPS,
+		},
+		Environments: models.DefaultEnvironments(),
+		RepoPath:     repoPath,
+	}
+}
+
+func TestScaffoldSOPS_CreatesSOPSDirectory(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testSOPSConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	sopsDir := filepath.Join(repoPath, "bootstrap/sops")
+	info, err := os.Stat(sopsDir)
+	require.NoError(t, err, "sops directory should exist")
+	assert.True(t, info.IsDir())
+
+	sealedDir := filepath.Join(repoPath, "bootstrap/sealed-secrets")
+	_, err = os.Stat(sealedDir)
+	assert.True(t, os.IsNotExist(err), "sealed-secrets should not exist when SOPS is selected")
+
+	esoDir := filepath.Join(repoPath, "bootstrap/external-secrets")
+	_, err = os.Stat(esoDir)
+	assert.True(t, os.IsNotExist(err), "external-secrets should not exist when SOPS is selected")
+}
+
+func TestScaffoldSOPS_CreatesBootstrapManifests(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testSOPSConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	expectedFiles := []string{
+		"bootstrap/sops/kustomization.yaml",
+		"bootstrap/sops/secret-example.yaml",
+		".sops.yaml",
+	}
+
+	for _, f := range expectedFiles {
+		_, err := os.Stat(filepath.Join(repoPath, f))
+		require.NoError(t, err, "file %s should exist", f)
+	}
+}
+
+func TestScaffoldSOPS_SopsYamlContent(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testSOPSConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, ".sops.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "creation_rules")
+	assert.Contains(t, content, "encrypted_regex")
+	assert.Contains(t, content, "^(data|stringData)$")
+	assert.Contains(t, content, "AGE-PUBLIC-KEY-PLACEHOLDER")
+}
+
+func TestScaffoldSOPS_SecretExampleContent(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testSOPSConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/sops/secret-example.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: Secret")
+	assert.Contains(t, content, "stringData")
+	assert.Contains(t, content, "sops --encrypt")
+}
+
+func TestScaffoldSOPS_FluxGotKSyncHasDecryption(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testSOPSFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/flux-system/gotk-sync.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "decryption:")
+	assert.Contains(t, content, "provider: sops")
+	assert.Contains(t, content, "name: sops-age")
+}
+
+func TestScaffoldSOPS_FluxGotKSyncNoDecryptionWithoutSOPS(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/flux-system/gotk-sync.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.NotContains(t, content, "decryption:")
+}
+
 func TestScaffoldESO_InjectsVersion(t *testing.T) {
 	root := t.TempDir()
 	repoPath := filepath.Join(root, "gitops-repo")

@@ -8,10 +8,11 @@ import (
 )
 
 type applicationData struct {
-	AppName  string
-	EnvName  string
-	AutoSync bool
-	Prune    bool
+	AppName     string
+	EnvName     string
+	AutoSync    bool
+	Prune       bool
+	SecretsType string
 }
 
 func (s *Scaffolder) appDefinitionTemplate() string {
@@ -26,10 +27,11 @@ func (s *Scaffolder) scaffoldAppDefinitions(appName string) error {
 
 	for _, env := range s.config.Environments {
 		data := applicationData{
-			AppName:  appName,
-			EnvName:  env.Name,
-			AutoSync: env.AutoSync,
-			Prune:    env.Prune,
+			AppName:     appName,
+			EnvName:     env.Name,
+			AutoSync:    env.AutoSync,
+			Prune:       env.Prune,
+			SecretsType: string(s.config.Secrets.Type),
 		}
 
 		outPath := filepath.Join("apps", fmt.Sprintf("%s-%s.yaml", appName, env.Name))

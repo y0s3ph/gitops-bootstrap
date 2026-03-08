@@ -227,6 +227,66 @@ func TestScaffoldESO_SecretsDocContainsESOInfo(t *testing.T) {
 	assert.NotContains(t, content, "SOPS")
 }
 
+// --- SOPS docs tests ---
+
+func TestScaffoldSOPS_SecretsDocContainsSOPSInfo(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testSOPSConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/SECRETS.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "SOPS")
+	assert.Contains(t, content, "age")
+	assert.Contains(t, content, ".sops.yaml")
+	assert.Contains(t, content, "sops --encrypt")
+	assert.Contains(t, content, "age.agekey")
+	assert.NotContains(t, content, "kubeseal")
+	assert.NotContains(t, content, "ExternalSecret")
+}
+
+func TestScaffoldSOPS_SecretsDocHasTroubleshooting(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testSOPSConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/SECRETS.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "Troubleshooting")
+	assert.Contains(t, content, "no matching keys found")
+	assert.Contains(t, content, "sops-age")
+}
+
+func TestScaffoldSOPS_SecretsDocFluxSpecific(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testSOPSFluxConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/SECRETS.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "flux-system")
+	assert.Contains(t, content, "kustomize-controller")
+	assert.Contains(t, content, "kustomizations")
+}
+
 func TestScaffoldESO_SecretsDocHasTroubleshooting(t *testing.T) {
 	root := t.TempDir()
 	repoPath := filepath.Join(root, "repo")

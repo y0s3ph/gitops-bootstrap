@@ -193,3 +193,37 @@ func TestScaffoldFluxApp_NoArgoCDReferences(t *testing.T) {
 		assert.NotContains(t, content, "argoproj.io", "Flux app should not contain ArgoCD references")
 	}
 }
+
+// --- SOPS + Flux app definition tests ---
+
+func TestScaffoldFluxSOPSApp_HasDecryptionBlock(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testSOPSFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-dev.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "decryption:")
+	assert.Contains(t, content, "provider: sops")
+	assert.Contains(t, content, "name: sops-age")
+}
+
+func TestScaffoldFluxNonSOPSApp_NoDecryptionBlock(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-dev.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.NotContains(t, content, "decryption:")
+}
