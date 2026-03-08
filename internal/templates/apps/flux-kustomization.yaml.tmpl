@@ -18,3 +18,9 @@ spec:
 {{- if not .AutoSync}}
   suspend: true
 {{- end}}
+{{- if eq .SecretsType "sops"}}
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+{{- end}}

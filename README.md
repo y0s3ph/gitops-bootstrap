@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml/badge.svg)](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Go 1.23+](https://img.shields.io/badge/go-1.23%2B-00ADD8.svg)](https://go.dev/)
+[![Go 1.24+](https://img.shields.io/badge/go-1.24%2B-00ADD8.svg)](https://go.dev/)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-jph91-0A66C2.svg?logo=linkedin)](https://www.linkedin.com/in/jph91/)
 
 ---
@@ -159,7 +159,7 @@ This separation gives you auditable deployments (every cluster change is a Git c
 | Phase | Milestone | Status | Summary |
 |---|---|---|---|
 | **1 — Core Bootstrap** | [v0.1.0](https://github.com/y0s3ph/gostrap/milestone/1?closed=1) | Done | Interactive wizard, repo scaffolding, ArgoCD installer, Sealed Secrets, documentation generation |
-| **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2) | In Progress | Flux CD controller **(done)**, External Secrets Operator, SOPS, multi-cluster, Helm chart support |
+| **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2) | In Progress | Flux CD controller **(done)**, External Secrets Operator **(done)**, SOPS **(done)**, multi-cluster, Helm chart support |
 | **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | Planned | `add-app`, `add-env`, `validate`, `diff`, `promote` commands, pre-commit hooks |
 | **4 — Platform Integration** | [v0.4.0](https://github.com/y0s3ph/gostrap/milestone/4) | Planned | Notifications, Image Updater, CI workflow templates, webhooks, terminal dashboard |
 
@@ -365,6 +365,21 @@ For **ArgoCD**, gostrap uses the [App of Apps pattern](https://argo-cd.readthedo
 - Encrypted secrets can live in Git safely.
 - Simple mental model: `kubeseal` encrypts, controller decrypts.
 - External Secrets Operator is offered as an alternative for teams already using AWS Secrets Manager, Vault, etc.
+
+### Secrets management: scalability and limitations
+
+Each option fits different team sizes and needs:
+
+| Option | Small team (1–5) | Growing team (5–20) | Large team (20+) |
+|--------|------------------|---------------------|------------------|
+| **Sealed Secrets** | Ideal | Good (key lives in cluster; no manual distribution) | Good, but no per-secret audit trail |
+| **SOPS (age)** | Ideal | Usable; key rotation and onboarding are manual | **Not recommended** — shared key, no access control |
+| **SOPS (KMS)** | Optional | **Ideal** — IAM controls access, no key distribution | **Ideal** — revoke access when people leave |
+| **External Secrets Operator** | Optional | **Ideal** — central vault, dynamic secrets | **Best** — audit, leases, fine-grained policies |
+
+**SOPS with a single age key** does not scale well: everyone shares the same private key, so when someone leaves you must rotate the key and re-encrypt all secrets; there is no per-environment or per-secret access control. For growing teams, prefer **External Secrets Operator** (Vault, AWS Secrets Manager, etc.) or **SOPS with KMS** (AWS KMS, GCP KMS, Azure Key Vault), where access is managed via IAM and key distribution is not needed.
+
+Planned improvement: [SOPS with KMS support (#28)](https://github.com/y0s3ph/gostrap/issues/28) — use cloud KMS instead of (or in addition to) age for scalable, IAM-based access.
 
 ### Why Go?
 

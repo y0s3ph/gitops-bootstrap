@@ -85,6 +85,8 @@ func (s *Scaffolder) createDirectories() error {
 		dirs = append(dirs, "bootstrap/sealed-secrets")
 	case models.SecretsESO:
 		dirs = append(dirs, "bootstrap/external-secrets")
+	case models.SecretsSOPS:
+		dirs = append(dirs, "bootstrap/sops")
 	}
 
 	for _, env := range s.config.Environments {
@@ -164,6 +166,8 @@ func (s *Scaffolder) renderSecretsBootstrap() error {
 		return s.renderSealedSecretsBootstrap()
 	case models.SecretsESO:
 		return s.renderESOBootstrap()
+	case models.SecretsSOPS:
+		return s.renderSOPSBootstrap()
 	default:
 		return nil
 	}
@@ -195,6 +199,26 @@ func (s *Scaffolder) renderESOBootstrap() error {
 		{"bootstrap/external-secrets/kustomization.yaml.tmpl", "bootstrap/external-secrets/kustomization.yaml"},
 		{"bootstrap/external-secrets/clustersecretstore-example.yaml.tmpl", "bootstrap/external-secrets/clustersecretstore-example.yaml"},
 		{"bootstrap/external-secrets/externalsecret-example.yaml.tmpl", "bootstrap/external-secrets/externalsecret-example.yaml"},
+	}
+
+	for _, tf := range tmplFiles {
+		if err := s.renderTemplate(tf.tmplPath, tf.outPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Scaffolder) renderSOPSBootstrap() error {
+	tmplFiles := []struct {
+		tmplPath string
+		outPath  string
+	}{
+		{"bootstrap/sops/kustomization.yaml.tmpl", "bootstrap/sops/kustomization.yaml"},
+		{"bootstrap/sops/.sops.yaml.tmpl", ".sops.yaml"},
+		{"bootstrap/sops/secret-example.yaml.tmpl", "bootstrap/sops/secret-example.yaml"},
+		{"bootstrap/sops/.gitignore.tmpl", "bootstrap/sops/.gitignore"},
 	}
 
 	for _, tf := range tmplFiles {
