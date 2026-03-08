@@ -115,7 +115,7 @@ gitops-repo/
 - [x] Generate repo structure following App of Apps pattern
 - [x] Kustomize-based environment management (base + overlays)
 - [x] Scaffold example application with full environment promotion path
-- [ ] Generate RBAC manifests for the GitOps controller
+- [x] Generate RBAC manifests for the GitOps controller
 - [ ] Generate documentation (ARCHITECTURE.md, ADDING-AN-APP.md, SECRETS.md)
 - [ ] Install ArgoCD (Helm-based, pinned version) with opinionated defaults
 - [ ] Sealed Secrets setup with key generation and backup instructions
