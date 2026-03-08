@@ -100,6 +100,8 @@ func (s *Scaffolder) renderBootstrap() error {
 		{"bootstrap/argocd/namespace.yaml.tmpl", "bootstrap/argocd/namespace.yaml"},
 		{"bootstrap/argocd/kustomization.yaml.tmpl", "bootstrap/argocd/kustomization.yaml"},
 		{"bootstrap/argocd/argocd-cm-patch.yaml.tmpl", "bootstrap/argocd/argocd-cm-patch.yaml"},
+		{"bootstrap/argocd/argocd-rbac-cm-patch.yaml.tmpl", "bootstrap/argocd/argocd-rbac-cm-patch.yaml"},
+		{"bootstrap/argocd/appproject-default.yaml.tmpl", "bootstrap/argocd/appproject-default.yaml"},
 	}
 
 	for _, tf := range tmplFiles {
