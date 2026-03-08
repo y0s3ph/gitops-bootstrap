@@ -101,19 +101,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	shouldInstall := cfg.ClusterContext != "" && !initFlags.skipInstall
 	if shouldInstall {
-		fmt.Println()
-		fmt.Printf("Installing ArgoCD v%s on cluster %s...\n", cfg.Controller.Version, cfg.ClusterContext)
-		fmt.Println()
-
-		argoInstaller := installer.NewArgoCD(cfg)
-		if err := argoInstaller.Install(func(step string) {
-			fmt.Printf("  %s %s\n", successStyle.Render("✓"), step)
-		}); err != nil {
-			return fmt.Errorf("installing ArgoCD: %w", err)
+		if err := installController(cfg); err != nil {
+			return err
 		}
-
-		fmt.Println()
-		fmt.Println(successStyle.Render("✓ ArgoCD installed and ready"))
 
 		if cfg.Secrets.Type == models.SecretsSealedSecrets {
 			fmt.Println()
@@ -139,16 +129,68 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func installController(cfg *models.BootstrapConfig) error {
+	progress := func(step string) {
+		fmt.Printf("  %s %s\n", successStyle.Render("✓"), step)
+	}
+
+	switch cfg.Controller.Type {
+	case models.ControllerFlux:
+		fmt.Println()
+		fmt.Printf("Installing Flux v%s on cluster %s...\n", cfg.Controller.Version, cfg.ClusterContext)
+		fmt.Println()
+
+		fluxInstaller := installer.NewFlux(cfg)
+		if err := fluxInstaller.Install(progress); err != nil {
+			return fmt.Errorf("installing Flux: %w", err)
+		}
+
+		fmt.Println()
+		fmt.Println(successStyle.Render("✓ Flux installed and ready"))
+
+	default:
+		fmt.Println()
+		fmt.Printf("Installing ArgoCD v%s on cluster %s...\n", cfg.Controller.Version, cfg.ClusterContext)
+		fmt.Println()
+
+		argoInstaller := installer.NewArgoCD(cfg)
+		if err := argoInstaller.Install(progress); err != nil {
+			return fmt.Errorf("installing ArgoCD: %w", err)
+		}
+
+		fmt.Println()
+		fmt.Println(successStyle.Render("✓ ArgoCD installed and ready"))
+	}
+
+	return nil
+}
+
+func controllerBootstrapPath(cfg *models.BootstrapConfig) string {
+	if cfg.Controller.Type == models.ControllerFlux {
+		return cfg.RepoPath + "/bootstrap/flux-system/"
+	}
+	return cfg.RepoPath + "/bootstrap/argocd/"
+}
+
 func printPostInstallSteps(cfg *models.BootstrapConfig) {
 	fmt.Println()
 	fmt.Println(dimStyle.Render("Next steps:"))
 	fmt.Printf("  1. cd %s && git init && git add -A && git commit -m \"feat: initial gitops structure\"\n", cfg.RepoPath)
 	fmt.Println("  2. Push to your Git provider")
 	fmt.Println("  3. Update apps/_root.yaml with your Git repo URL")
-	fmt.Println()
-	fmt.Println(dimStyle.Render("Access ArgoCD UI:"))
-	fmt.Println("  kubectl -n argocd port-forward svc/argocd-server 8080:443")
-	fmt.Println("  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d")
+
+	if cfg.Controller.Type == models.ControllerArgoCD {
+		fmt.Println()
+		fmt.Println(dimStyle.Render("Access ArgoCD UI:"))
+		fmt.Println("  kubectl -n argocd port-forward svc/argocd-server 8080:443")
+		fmt.Println("  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d")
+	} else {
+		fmt.Println()
+		fmt.Println(dimStyle.Render("Check Flux status:"))
+		fmt.Println("  kubectl -n flux-system get all")
+		fmt.Println("  kubectl -n flux-system get gitrepositories")
+		fmt.Println("  kubectl -n flux-system get kustomizations")
+	}
 
 	if cfg.Secrets.Type == models.SecretsSealedSecrets {
 		fmt.Println()
@@ -170,7 +212,7 @@ func printScaffoldOnlySteps(cfg *models.BootstrapConfig) {
 	if cfg.ClusterContext == "" {
 		fmt.Println()
 		fmt.Println(warnStyle.Render("  No cluster context provided — skipped installation."))
-		fmt.Println(dimStyle.Render("  To install later: kubectl apply -k " + cfg.RepoPath + "/bootstrap/argocd/"))
+		fmt.Println(dimStyle.Render("  To install later: kubectl apply -k " + controllerBootstrapPath(cfg)))
 	}
 }
 
