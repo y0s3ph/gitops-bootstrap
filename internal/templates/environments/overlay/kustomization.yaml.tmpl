@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: {{.EnvName}}
+
+resources:
+  - ../../base/{{.AppName}}
+
+replicas:
+  - name: {{.AppName}}
+    count: {{.Replicas}}
+
+labels:
+  - pairs:
+      environment: {{.EnvName}}
+    includeSelectors: false

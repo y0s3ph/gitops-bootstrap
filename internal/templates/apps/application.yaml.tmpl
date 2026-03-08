@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{.AppName}}-{{.EnvName}}
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: {{.AppName}}
+    environment: {{.EnvName}}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ "{{" }} YOUR_GIT_REPO_URL {{ "}}" }}
+    targetRevision: HEAD
+    path: environments/{{.EnvName}}/{{.AppName}}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{.EnvName}}
+  syncPolicy:
+{{- if .AutoSync}}
+    automated:
+      prune: {{.Prune}}
+      selfHeal: true
+{{- end}}
+    syncOptions:
+      - CreateNamespace=true
