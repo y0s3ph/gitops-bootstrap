@@ -1,0 +1,91 @@
+# Troubleshooting
+
+Common issues and solutions for this GitOps setup.
+
+## Application stuck in "OutOfSync"
+
+**Symptom:** ArgoCD shows the application as OutOfSync even after syncing.
+
+**Common causes:**
+- Immutable fields changed (e.g., `selector.matchLabels`). Delete the resource and let ArgoCD recreate it.
+- A mutating webhook is modifying the resource after apply. Add the mutated fields to the [resource ignore list](https://argo-cd.readthedocs.io/en/stable/user-guide/diffing/).
+- `kustomize build` output differs from what's in the cluster. Run `kustomize build environments/<env>/<app>/` locally to inspect.
+
+## Application stuck in "Progressing"
+
+**Symptom:** Deployment never reaches Ready.
+
+**Checks:**
+```bash
+kubectl -n <namespace> describe deployment <app-name>
+kubectl -n <namespace> get events --sort-by='.lastTimestamp'
+kubectl -n <namespace> logs deployment/<app-name>
+```
+
+**Common causes:**
+- Image pull errors (wrong image name/tag, missing pull secret).
+- Health probe failures (wrong path or port).
+- Insufficient resources (CPU/memory limits too low, or node has no capacity).
+
+## Sync failed: "the server could not find the requested resource"
+
+**Cause:** A CRD is missing. This typically happens when an Application depends on a CRD installed by another Application (e.g., cert-manager Certificates before cert-manager is installed).
+
+**Fix:** Ensure platform dependencies are synced first, or add [sync waves](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/) to control ordering.
+
+## Permission denied during sync
+
+**Cause:** The ArgoCD controller service account lacks permissions in the target namespace, or the AppProject does not allow the destination namespace.
+
+**Fix:**
+1. Check `bootstrap/argocd/appproject-default.yaml` — ensure the target namespace is in the `destinations` list.
+2. If using a non-default project, verify its permissions.
+
+## Sealed Secret not decrypting
+
+**Cause:** The SealedSecret was encrypted with a different cluster's public key.
+
+**Fix:**
+```bash
+# Fetch the current certificate
+kubeseal --fetch-cert > /tmp/cert.pem
+
+# Re-seal with the correct certificate
+kubeseal --cert /tmp/cert.pem --format yaml < /tmp/plain-secret.yaml > sealed-secret.yaml
+```
+
+## Kustomize build fails locally
+
+```bash
+# Validate a specific environment overlay
+kustomize build environments/<env>/<app>/
+
+# Common issues:
+# - Missing base reference (check the resources path in kustomization.yaml)
+# - Invalid patch format
+# - Duplicate resource names
+```
+
+## ArgoCD UI not accessible
+
+```bash
+# Port-forward to access locally
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+# Get the initial admin password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
+
+## Useful commands
+
+```bash
+# Check sync status of all apps
+kubectl -n argocd get applications
+
+# Force refresh an app
+kubectl -n argocd patch application <app> --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+# View ArgoCD logs
+kubectl -n argocd logs deployment/argocd-application-controller
+kubectl -n argocd logs deployment/argocd-server
+```

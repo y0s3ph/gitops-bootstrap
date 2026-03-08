@@ -1,0 +1,113 @@
+# Adding an Application
+
+Step-by-step guide to onboard a new application to this GitOps repository.
+
+## 1. Create the base manifests
+
+Create a directory under `environments/base/` with your application name:
+
+```
+environments/base/<app-name>/
+├── kustomization.yaml
+├── deployment.yaml
+└── service.yaml
+```
+
+**kustomization.yaml:**
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+```
+
+**deployment.yaml** — adjust image, port, resources, and probes to match your application.
+
+**service.yaml** — expose the appropriate port.
+
+## 2. Create environment overlays
+
+For each environment, create an overlay directory:
+
+```
+{{- range .Environments}}
+environments/{{.Name}}/<app-name>/kustomization.yaml
+{{- end}}
+```
+
+Each overlay references the base and patches environment-specific values:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: <environment>
+
+resources:
+  - ../../base/<app-name>
+
+replicas:
+  - name: <app-name>
+    count: <replica-count>
+
+labels:
+  - pairs:
+      environment: <environment>
+    includeSelectors: false
+```
+
+## 3. Create ArgoCD Application definitions
+
+For each environment, create an Application YAML in `apps/`:
+
+```
+{{- range .Environments}}
+apps/<app-name>-{{.Name}}.yaml
+{{- end}}
+```
+
+Each Application points to the corresponding overlay:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: <app-name>-<environment>
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: <this-repo-url>
+    targetRevision: HEAD
+    path: environments/<environment>/<app-name>
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: <environment>
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+```
+
+## 4. Commit and push
+
+```bash
+git add -A
+git commit -m "feat: onboard <app-name>"
+git push
+```
+
+The root Application in `apps/_root.yaml` will detect the new files and ArgoCD will begin syncing automatically.
+
+## Quick checklist
+
+- [ ] Base manifests in `environments/base/<app>/`
+- [ ] Overlay per environment in `environments/<env>/<app>/`
+- [ ] ArgoCD Application per environment in `apps/`
+- [ ] Image tag set (do not use `:latest` in staging/production)
+- [ ] Resource requests and limits defined
+- [ ] Health probes configured
