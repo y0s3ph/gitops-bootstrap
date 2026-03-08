@@ -423,6 +423,53 @@ gitops-bootstrap/
 
 **gitops-bootstrap** differentiates by being lightweight, controller-agnostic, and focused exclusively on the GitOps repo structure + controller setup — without trying to be an entire platform.
 
+## Development
+
+### Prerequisites
+
+- [Go 1.23+](https://go.dev/dl/)
+- [Docker](https://docs.docker.com/get-docker/)
+- [kind](https://kind.sigs.k8s.io/) — `go install sigs.k8s.io/kind@latest`
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+
+### Build
+
+```bash
+go build -o gitops-bootstrap ./cmd/gitops-bootstrap/
+```
+
+### Test
+
+```bash
+go test ./...
+```
+
+### Local Kubernetes Cluster
+
+Scripts in `hack/` manage a local [kind](https://kind.sigs.k8s.io/) cluster preconfigured with ingress port mappings (80/443) for testing ArgoCD UI access:
+
+```bash
+# Create cluster (idempotent — skips if already exists)
+./hack/setup-kind.sh            # default name: gitops-dev
+./hack/setup-kind.sh my-cluster # custom name
+
+# Delete cluster
+./hack/teardown-kind.sh
+./hack/teardown-kind.sh my-cluster
+```
+
+### Quick Smoke Test
+
+```bash
+# Build and run the wizard in non-interactive mode
+go run ./cmd/gitops-bootstrap/ init \
+  --controller argocd \
+  --secrets sealed-secrets \
+  --environments dev,staging,production \
+  --repo-path ./test-repo \
+  --cluster-context kind-gitops-dev
+```
+
 ## Contributing
 
 Contributions are welcome. Please open an issue to discuss your idea before submitting a PR.
