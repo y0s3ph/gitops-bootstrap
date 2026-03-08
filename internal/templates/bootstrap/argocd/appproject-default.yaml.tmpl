@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+  namespace: argocd
+spec:
+  description: Default project managed by gitops-bootstrap
+  sourceRepos:
+    - '*'
+  destinations:
+{{- range .Environments}}
+    - namespace: {{.Name}}
+      server: https://kubernetes.default.svc
+{{- end}}
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  orphanedResources:
+    warn: true
