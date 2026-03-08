@@ -3,7 +3,7 @@
 > From zero to GitOps in one command — opinionated CLI to bootstrap a production-ready GitOps workflow on any Kubernetes cluster.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Go 1.23+](https://img.shields.io/badge/go-1.23%2B-00ADD8.svg)](https://go.dev/)
 
 ---
 
@@ -165,7 +165,7 @@ gitops-repo/
 │                           │                               │
 │  ┌────────────────────────┴─────────────────────────┐     │
 │  │              Template Engine                      │     │
-│  │  Jinja2 templates for all generated manifests     │     │
+│  │  Go text/template for all generated manifests     │     │
 │  └───────────────────────────────────────────────────┘     │
 │                           │                               │
 └───────────────────────────┼───────────────────────────────┘
@@ -182,25 +182,24 @@ gitops-repo/
 ### Component Responsibilities
 
 - **Wizard**: Gathers user preferences through interactive prompts or config file/flags. Validates input and produces a normalized configuration object.
-- **Scaffolder**: Generates the Git repository structure from Jinja2 templates. Handles directory creation, manifest rendering, and documentation generation. Idempotent — detects existing files and skips them.
-- **Installer**: Applies bootstrap manifests to the cluster. Installs ArgoCD/Flux via Helm, sets up secrets management, configures RBAC. Includes health checks to verify successful installation.
-- **Template Engine**: Jinja2-based rendering layer used by both Scaffolder and Installer. All generated manifests are templates with sensible defaults that can be customized.
+- **Scaffolder**: Generates the Git repository structure from Go `text/template` templates. Handles directory creation, manifest rendering, and documentation generation. Idempotent — detects existing files and skips them.
+- **Installer**: Applies bootstrap manifests to the cluster. Installs ArgoCD/Flux via the Helm Go SDK, sets up secrets management, configures RBAC. Includes health checks to verify successful installation.
+- **Template Engine**: Go `text/template`-based rendering layer used by both Scaffolder and Installer. Templates are embedded in the binary via `embed.FS`. All generated manifests are templates with sensible defaults that can be customized.
 
 ## Tech Stack
 
 | Component | Technology | Rationale |
 |---|---|---|
-| Language | **Python 3.11+** | Consistent with team's tooling ecosystem, fast iteration |
-| CLI framework | **Typer** | Modern, type-hinted, supports both interactive and non-interactive modes |
-| Terminal UI | **Rich** | Interactive prompts, progress indicators, beautiful output |
-| Template engine | **Jinja2** | Industry standard for manifest templating, familiar to most engineers |
-| K8s client | **kubernetes (official)** | For health checks and cluster introspection |
-| Helm integration | **subprocess (helm CLI)** | Helm's Python bindings are immature; wrapping the CLI is more reliable |
-| Config file | **YAML (Pydantic)** | Natural format for K8s engineers, validated with Pydantic models |
-| Package manager | **uv** | Fast dependency resolution |
-| Build system | **pyproject.toml** (hatch/hatchling) | Modern Python packaging standard |
-| Testing | **pytest** | With tmp_path fixtures for repo scaffolding tests |
-| Linting | **Ruff** | Fast, comprehensive |
+| Language | **Go 1.23+** | Native to the Kubernetes ecosystem; compiles to a single static binary with zero runtime dependencies |
+| CLI framework | **Cobra** | De facto standard for Go CLIs — used by kubectl, helm, gh, and most CNCF tools |
+| Terminal UI | **Bubble Tea + Lip Gloss** (Charmbracelet) | Rich interactive TUIs with progress indicators, selection menus, and styled output |
+| Template engine | **text/template** (stdlib) | Go's built-in template engine — no external dependency, sufficient for YAML manifest generation |
+| K8s client | **client-go** (official) | The reference Kubernetes client library, always up-to-date with the latest API |
+| Helm integration | **Helm Go SDK** (`helm.sh/helm/v3`) | Native library integration — no subprocess calls, no dependency on the user having Helm installed |
+| Config file | **YAML** (`gopkg.in/yaml.v3`) + **go-playground/validator** | Natural format for K8s engineers, with struct tag-based validation |
+| Build & release | **GoReleaser** | Cross-compilation, GitHub releases, Homebrew tap, Docker images — all in one workflow |
+| Testing | **testing** (stdlib) + **testify** | Standard Go testing with `t.TempDir()` for repo scaffolding tests |
+| Linting | **golangci-lint** | Meta-linter aggregating 50+ linters in a single fast run |
 
 ## Planned CLI Interface
 
@@ -362,12 +361,13 @@ The [App of Apps pattern](https://argo-cd.readthedocs.io/en/stable/operator-manu
 - Simple mental model: `kubeseal` encrypts, controller decrypts.
 - External Secrets Operator is offered as an alternative for teams already using AWS Secrets Manager, Vault, etc.
 
-### Why Python over Go?
+### Why Go?
 
-- Faster development cycle for a scaffolding/templating tool.
-- Jinja2 is the best templating engine available, and it's Python-native.
-- The CLI doesn't need to be compiled or distributed as a single binary (pipx handles this well).
-- Consistent with the rest of the tooling ecosystem (kubeshield, kube-cost-lens, platformhub).
+- **Native to the Kubernetes ecosystem**: Go is the language behind Kubernetes, ArgoCD, Flux, Helm, and most CNCF tooling. Contributors from this ecosystem already write Go.
+- **Single binary distribution**: `curl`, `chmod +x`, done. No runtime, no interpreter, no virtual environments. Works seamlessly in CI pipelines, air-gapped environments, and scratch containers.
+- **First-class Kubernetes and Helm libraries**: `client-go` and the Helm Go SDK are the reference implementations — always up-to-date, fully featured, and well-documented. No subprocess wrappers needed.
+- **Embedded templates**: Go's `embed.FS` allows shipping all manifest templates inside the binary itself, eliminating the need to manage template files on disk.
+- **Cross-compilation**: A single `goreleaser` config produces binaries for Linux, macOS, and Windows (amd64/arm64), plus Homebrew formulas and Docker images.
 
 ### Why not just use a Helm chart for everything?
 
@@ -377,46 +377,49 @@ Helm charts are great for distributing reusable software, but they're a poor fit
 
 ```
 gitops-bootstrap/
-├── src/
-│   └── gitops_bootstrap/
-│       ├── __init__.py
-│       ├── cli.py                  # Typer CLI entrypoint
-│       ├── wizard/
-│       │   ├── __init__.py
-│       │   ├── prompts.py          # Interactive prompts (Rich)
-│       │   └── config.py           # Config file parsing (Pydantic)
-│       ├── scaffolder/
-│       │   ├── __init__.py
-│       │   ├── repo.py             # Repo structure generation
-│       │   ├── apps.py             # Application manifest generation
-│       │   ├── environments.py     # Environment overlay generation
-│       │   └── docs.py             # Documentation generation
-│       ├── installer/
-│       │   ├── __init__.py
-│       │   ├── argocd.py           # ArgoCD installation via Helm
-│       │   ├── flux.py             # Flux installation
-│       │   ├── secrets.py          # Sealed Secrets / ESO setup
-│       │   └── health.py           # Post-install health checks
-│       ├── templates/              # Jinja2 templates for all manifests
-│       │   ├── argocd/
-│       │   ├── flux/
-│       │   ├── apps/
-│       │   ├── environments/
-│       │   ├── platform/
-│       │   ├── policies/
-│       │   └── docs/
-│       └── models.py               # Pydantic models for configuration
+├── cmd/
+│   └── gitops-bootstrap/
+│       └── main.go                 # Entrypoint
+├── internal/
+│   ├── wizard/
+│   │   ├── wizard.go               # Interactive prompts (Bubble Tea)
+│   │   └── config.go               # Config file parsing & validation
+│   ├── scaffolder/
+│   │   ├── repo.go                 # Repo structure generation
+│   │   ├── apps.go                 # Application manifest generation
+│   │   ├── environments.go         # Environment overlay generation
+│   │   └── docs.go                 # Documentation generation
+│   ├── installer/
+│   │   ├── argocd.go               # ArgoCD installation via Helm Go SDK
+│   │   ├── flux.go                 # Flux installation
+│   │   ├── secrets.go              # Sealed Secrets / ESO setup
+│   │   └── health.go               # Post-install health checks
+│   ├── templates/                  # Go text/template files (embedded via embed.FS)
+│   │   ├── argocd/
+│   │   ├── flux/
+│   │   ├── apps/
+│   │   ├── environments/
+│   │   ├── platform/
+│   │   ├── policies/
+│   │   ├── docs/
+│   │   └── embed.go                # //go:embed directives
+│   └── models/
+│       └── config.go               # Configuration structs with validation tags
+├── pkg/
+│   └── kube/
+│       └── client.go               # Kubernetes client helpers (client-go)
 ├── tests/
-│   ├── conftest.py
-│   ├── test_wizard.py
-│   ├── test_scaffolder.py
-│   ├── test_installer.py
-│   └── fixtures/
+│   ├── wizard_test.go
+│   ├── scaffolder_test.go
+│   ├── installer_test.go
+│   └── testdata/
 │       └── sample-configs/
 ├── examples/
 │   ├── bootstrap-config.yaml       # Example config file
 │   └── github-actions-promote.yml  # Example promotion workflow
-├── pyproject.toml
+├── .goreleaser.yaml                # Cross-compilation & release config
+├── go.mod
+├── go.sum
 ├── LICENSE
 └── README.md
 ```
@@ -439,7 +442,7 @@ Contributions are welcome. Please open an issue to discuss your idea before subm
 This project follows:
 - [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
 - Trunk-based development with short-lived feature branches.
-- All code must pass `ruff check`, `ruff format --check`, and `mypy` before merge.
+- All code must pass `golangci-lint run` and `go test ./...` before merge.
 
 ## License
 
