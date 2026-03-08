@@ -366,6 +366,21 @@ For **ArgoCD**, gostrap uses the [App of Apps pattern](https://argo-cd.readthedo
 - Simple mental model: `kubeseal` encrypts, controller decrypts.
 - External Secrets Operator is offered as an alternative for teams already using AWS Secrets Manager, Vault, etc.
 
+### Secrets management: scalability and limitations
+
+Each option fits different team sizes and needs:
+
+| Option | Small team (1–5) | Growing team (5–20) | Large team (20+) |
+|--------|------------------|---------------------|------------------|
+| **Sealed Secrets** | Ideal | Good (key lives in cluster; no manual distribution) | Good, but no per-secret audit trail |
+| **SOPS (age)** | Ideal | Usable; key rotation and onboarding are manual | **Not recommended** — shared key, no access control |
+| **SOPS (KMS)** | Optional | **Ideal** — IAM controls access, no key distribution | **Ideal** — revoke access when people leave |
+| **External Secrets Operator** | Optional | **Ideal** — central vault, dynamic secrets | **Best** — audit, leases, fine-grained policies |
+
+**SOPS with a single age key** does not scale well: everyone shares the same private key, so when someone leaves you must rotate the key and re-encrypt all secrets; there is no per-environment or per-secret access control. For growing teams, prefer **External Secrets Operator** (Vault, AWS Secrets Manager, etc.) or **SOPS with KMS** (AWS KMS, GCP KMS, Azure Key Vault), where access is managed via IAM and key distribution is not needed.
+
+Planned improvement: [SOPS with KMS support (#28)](https://github.com/y0s3ph/gostrap/issues/28) — use cloud KMS instead of (or in addition to) age for scalable, IAM-based access.
+
 ### Why Go?
 
 - **Native to the Kubernetes ecosystem**: Go is the language behind Kubernetes, ArgoCD, Flux, Helm, and most CNCF tooling. Contributors from this ecosystem already write Go.
