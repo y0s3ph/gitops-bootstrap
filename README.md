@@ -148,35 +148,23 @@ gitops-repo/
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                  gitops-bootstrap CLI                     │
-│                                                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────┐   │
-│  │   Wizard     │  │  Scaffolder  │  │  Installer    │   │
-│  │              │  │              │  │               │   │
-│  │ - Interactive│  │ - Repo       │  │ - Helm        │   │
-│  │ - Config file│  │   structure  │  │ - kubectl     │   │
-│  │ - Flags     │  │ - Templates  │  │ - Wait/health │   │
-│  │              │  │ - Docs       │  │               │   │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬────────┘   │
-│         │                 │                  │            │
-│         └─────────────────┼──────────────────┘            │
-│                           │                               │
-│  ┌────────────────────────┴─────────────────────────┐     │
-│  │              Template Engine                      │     │
-│  │  Go text/template for all generated manifests     │     │
-│  └───────────────────────────────────────────────────┘     │
-│                           │                               │
-└───────────────────────────┼───────────────────────────────┘
-                            │
-               ┌────────────┼───────────────┐
-               │            │               │
-               ▼            ▼               ▼
-         ┌──────────┐ ┌──────────┐   ┌────────────┐
-         │  Git     │ │  K8s API │   │   Helm     │
-         │  Repo    │ │          │   │   (ArgoCD)  │
-         └──────────┘ └──────────┘   └────────────┘
+```mermaid
+graph TD
+    subgraph CLI["gitops-bootstrap CLI"]
+        Wizard["<b>Wizard</b><br/>Interactive prompts<br/>Config file<br/>Flags"]
+        Scaffolder["<b>Scaffolder</b><br/>Repo structure<br/>Templates<br/>Docs"]
+        Installer["<b>Installer</b><br/>Helm Go SDK<br/>client-go<br/>Health checks"]
+
+        Wizard --> Engine
+        Scaffolder --> Engine
+        Installer --> Engine
+
+        Engine["<b>Template Engine</b><br/>Go text/template<br/>Embedded via embed.FS"]
+    end
+
+    Engine --> Git["Git Repo"]
+    Engine --> K8s["K8s API"]
+    Engine --> Helm["Helm<br/>(ArgoCD / Flux)"]
 ```
 
 ### Component Responsibilities
