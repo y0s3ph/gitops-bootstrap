@@ -38,6 +38,21 @@ func testFluxConfig(repoPath string) *models.BootstrapConfig {
 	}
 }
 
+func testESOConfig(repoPath string) *models.BootstrapConfig {
+	return &models.BootstrapConfig{
+		Controller: models.ControllerConfig{
+			Type:    models.ControllerArgoCD,
+			Version: "2.13.1",
+		},
+		Secrets: models.SecretsConfig{
+			Type:    models.SecretsESO,
+			Version: "2.1.0",
+		},
+		Environments: models.DefaultEnvironments(),
+		RepoPath:     repoPath,
+	}
+}
+
 func TestScaffold_CreatesDirectoryTree(t *testing.T) {
 	root := t.TempDir()
 	repoPath := filepath.Join(root, "gitops-repo")
@@ -432,4 +447,117 @@ func TestScaffoldFlux_InjectsControllerVersion(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Contains(t, string(data), "v2.7.0/install.yaml")
+}
+
+// --- ESO-specific scaffolding tests ---
+
+func TestScaffoldESO_CreatesESODirectory(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testESOConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	esoDir := filepath.Join(repoPath, "bootstrap/external-secrets")
+	info, err := os.Stat(esoDir)
+	require.NoError(t, err, "external-secrets directory should exist")
+	assert.True(t, info.IsDir())
+
+	sealedDir := filepath.Join(repoPath, "bootstrap/sealed-secrets")
+	_, err = os.Stat(sealedDir)
+	assert.True(t, os.IsNotExist(err), "sealed-secrets should not exist when ESO is selected")
+}
+
+func TestScaffoldESO_CreatesBootstrapManifests(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testESOConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	expectedFiles := []string{
+		"bootstrap/external-secrets/kustomization.yaml",
+		"bootstrap/external-secrets/clustersecretstore-example.yaml",
+		"bootstrap/external-secrets/externalsecret-example.yaml",
+	}
+
+	for _, f := range expectedFiles {
+		_, err := os.Stat(filepath.Join(repoPath, f))
+		require.NoError(t, err, "file %s should exist", f)
+	}
+}
+
+func TestScaffoldESO_KustomizationReferencesUpstream(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testESOConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/external-secrets/kustomization.yaml"))
+	require.NoError(t, err)
+
+	assert.Contains(t, string(data), "external-secrets/releases/download/v2.1.0/external-secrets.yaml")
+}
+
+func TestScaffoldESO_ClusterSecretStoreContent(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testESOConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/external-secrets/clustersecretstore-example.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: ClusterSecretStore")
+	assert.Contains(t, content, "name: cluster-secret-store")
+	assert.Contains(t, content, "SecretsManager")
+	assert.Contains(t, content, "vault:")
+	assert.Contains(t, content, "gcpsm:")
+	assert.Contains(t, content, "azurekv:")
+}
+
+func TestScaffoldESO_ExternalSecretContent(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testESOConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/external-secrets/externalsecret-example.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: ExternalSecret")
+	assert.Contains(t, content, "secretStoreRef:")
+	assert.Contains(t, content, "cluster-secret-store")
+	assert.Contains(t, content, "remoteRef:")
+}
+
+func TestScaffoldESO_InjectsVersion(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testESOConfig(repoPath)
+	cfg.Secrets.Version = "2.0.0"
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "bootstrap/external-secrets/kustomization.yaml"))
+	require.NoError(t, err)
+
+	assert.Contains(t, string(data), "v2.0.0/external-secrets.yaml")
 }

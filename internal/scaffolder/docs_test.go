@@ -202,3 +202,45 @@ func TestScaffoldFlux_AddingAppDocListsFluxKustomization(t *testing.T) {
 	assert.Contains(t, content, "kustomize.toolkit.fluxcd.io")
 	assert.NotContains(t, content, "argoproj.io")
 }
+
+// --- ESO docs tests ---
+
+func TestScaffoldESO_SecretsDocContainsESOInfo(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testESOConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/SECRETS.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "External Secrets Operator")
+	assert.Contains(t, content, "2.1.0")
+	assert.Contains(t, content, "ClusterSecretStore")
+	assert.Contains(t, content, "ExternalSecret")
+	assert.Contains(t, content, "refreshInterval")
+	assert.NotContains(t, content, "kubeseal")
+	assert.NotContains(t, content, "SOPS")
+}
+
+func TestScaffoldESO_SecretsDocHasTroubleshooting(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testESOConfig(repoPath)
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/SECRETS.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "Troubleshooting")
+	assert.Contains(t, content, "force-sync")
+	assert.Contains(t, content, "clustersecretstore-example.yaml")
+}
