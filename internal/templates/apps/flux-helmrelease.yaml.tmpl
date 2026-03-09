@@ -1,0 +1,28 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: {{.AppName}}-{{.EnvName}}
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: {{.AppName}}
+    environment: {{.EnvName}}
+spec:
+  interval: 5m0s
+  releaseName: {{.AppName}}
+  targetNamespace: {{.EnvName}}
+  chart:
+    spec:
+      chart: ./environments/base/{{.AppName}}
+      sourceRef:
+        kind: GitRepository
+        name: gitops-repo
+        namespace: flux-system
+  valuesFrom:
+    - kind: ConfigMap
+      name: {{.AppName}}-{{.EnvName}}-values
+      optional: true
+  values:
+    replicaCount: {{.Replicas}}
+{{- if not .AutoSync}}
+  suspend: true
+{{- end}}

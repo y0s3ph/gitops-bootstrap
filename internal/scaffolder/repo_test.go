@@ -691,6 +691,197 @@ func TestScaffoldSOPS_FluxGotKSyncNoDecryptionWithoutSOPS(t *testing.T) {
 	assert.NotContains(t, content, "decryption:")
 }
 
+// --- Helm scaffolding tests ---
+
+func testHelmConfig(repoPath string) *models.BootstrapConfig {
+	return &models.BootstrapConfig{
+		Controller: models.ControllerConfig{
+			Type:    models.ControllerArgoCD,
+			Version: "2.13.1",
+		},
+		Secrets: models.SecretsConfig{
+			Type: models.SecretsSealedSecrets,
+		},
+		Environments: models.DefaultEnvironments(),
+		RepoPath:     repoPath,
+		ManifestType: models.ManifestHelm,
+	}
+}
+
+func testHelmFluxConfig(repoPath string) *models.BootstrapConfig {
+	return &models.BootstrapConfig{
+		Controller: models.ControllerConfig{
+			Type:    models.ControllerFlux,
+			Version: "2.8.1",
+		},
+		Secrets: models.SecretsConfig{
+			Type: models.SecretsSealedSecrets,
+		},
+		Environments: models.DefaultEnvironments(),
+		RepoPath:     repoPath,
+		ManifestType: models.ManifestHelm,
+	}
+}
+
+func TestScaffoldHelm_CreatesChartStructure(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmConfig(repoPath)
+	cfg.ScaffoldExample = true
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	expectedFiles := []string{
+		"environments/base/example-api/Chart.yaml",
+		"environments/base/example-api/values.yaml",
+		"environments/base/example-api/templates/_helpers.tpl",
+		"environments/base/example-api/templates/deployment.yaml",
+		"environments/base/example-api/templates/service.yaml",
+	}
+
+	for _, f := range expectedFiles {
+		_, err := os.Stat(filepath.Join(repoPath, f))
+		require.NoError(t, err, "file %s should exist", f)
+	}
+}
+
+func TestScaffoldHelm_ChartYamlContent(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmConfig(repoPath)
+	cfg.ScaffoldExample = true
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "environments/base/example-api/Chart.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "name: example-api")
+	assert.Contains(t, content, "apiVersion: v2")
+	assert.Contains(t, content, "type: application")
+}
+
+func TestScaffoldHelm_ValuesFileContent(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmConfig(repoPath)
+	cfg.ScaffoldExample = true
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "environments/base/example-api/values.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "replicaCount: 1")
+	assert.Contains(t, content, "repository: example-api")
+	assert.Contains(t, content, "port: 8080")
+}
+
+func TestScaffoldHelm_OverlayValuesPerEnvironment(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmConfig(repoPath)
+	cfg.ScaffoldExample = true
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	tests := []struct {
+		env      string
+		replicas string
+	}{
+		{"dev", "replicaCount: 1"},
+		{"staging", "replicaCount: 2"},
+		{"production", "replicaCount: 3"},
+	}
+
+	for _, tt := range tests {
+		data, err := os.ReadFile(filepath.Join(repoPath, "environments", tt.env, "example-api", "values.yaml"))
+		require.NoError(t, err, "values.yaml for %s should exist", tt.env)
+		assert.Contains(t, string(data), tt.replicas, "%s should have %s", tt.env, tt.replicas)
+	}
+}
+
+func TestScaffoldHelm_NoKustomizationFiles(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmConfig(repoPath)
+	cfg.ScaffoldExample = true
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	_, err = os.Stat(filepath.Join(repoPath, "environments/base/example-api/kustomization.yaml"))
+	assert.True(t, os.IsNotExist(err), "kustomization.yaml should not exist in Helm mode")
+
+	_, err = os.Stat(filepath.Join(repoPath, "environments/dev/example-api/kustomization.yaml"))
+	assert.True(t, os.IsNotExist(err), "overlay kustomization.yaml should not exist in Helm mode")
+}
+
+func TestScaffoldHelm_ArgoCDApplicationHasHelmSource(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-staging.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: Application")
+	assert.Contains(t, content, "helm:")
+	assert.Contains(t, content, "releaseName: my-api")
+	assert.Contains(t, content, "valueFiles:")
+	assert.Contains(t, content, "environments/staging/my-api/values.yaml")
+	assert.Contains(t, content, "path: environments/base/my-api")
+}
+
+func TestScaffoldHelm_FluxHelmReleaseCreated(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-dev.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "kind: HelmRelease")
+	assert.Contains(t, content, "helm.toolkit.fluxcd.io")
+	assert.Contains(t, content, "releaseName: my-api")
+	assert.Contains(t, content, "chart: ./environments/base/my-api")
+	assert.NotContains(t, content, "argoproj.io")
+}
+
+func TestScaffoldHelm_FluxHelmReleaseProductionSuspended(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "gitops-repo")
+	cfg := testHelmFluxConfig(repoPath)
+
+	s := New(cfg)
+	require.NoError(t, s.ScaffoldApp("my-api", 8080))
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "apps/my-api-production.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "suspend: true")
+}
+
 func TestScaffoldESO_InjectsVersion(t *testing.T) {
 	root := t.TempDir()
 	repoPath := filepath.Join(root, "gitops-repo")

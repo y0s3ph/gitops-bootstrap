@@ -12,25 +12,40 @@ type applicationData struct {
 	EnvName     string
 	AutoSync    bool
 	Prune       bool
+	Replicas    int
 	SecretsType string
 }
 
 func (s *Scaffolder) appDefinitionTemplate() string {
-	if s.config.Controller.Type == models.ControllerFlux {
+	isHelm := s.config.ManifestType == models.ManifestHelm
+
+	switch {
+	case s.config.Controller.Type == models.ControllerFlux && isHelm:
+		return "apps/flux-helmrelease.yaml.tmpl"
+	case s.config.Controller.Type == models.ControllerFlux:
 		return "apps/flux-kustomization.yaml.tmpl"
+	case isHelm:
+		return "apps/application-helm.yaml.tmpl"
+	default:
+		return "apps/application.yaml.tmpl"
 	}
-	return "apps/application.yaml.tmpl"
 }
 
 func (s *Scaffolder) scaffoldAppDefinitions(appName string) error {
 	tmpl := s.appDefinitionTemplate()
 
 	for _, env := range s.config.Environments {
+		replicas := defaultReplicas[env.Name]
+		if replicas == 0 {
+			replicas = 1
+		}
+
 		data := applicationData{
 			AppName:     appName,
 			EnvName:     env.Name,
 			AutoSync:    env.AutoSync,
 			Prune:       env.Prune,
+			Replicas:    replicas,
 			SecretsType: string(s.config.Secrets.Type),
 		}
 

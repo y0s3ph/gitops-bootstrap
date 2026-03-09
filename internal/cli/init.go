@@ -22,6 +22,7 @@ var initFlags struct {
 	controller      string
 	controllerVer   string
 	secrets         string
+	manifestType    string
 	environments    string
 	repoPath        string
 	clusterContext  string
@@ -49,6 +50,7 @@ func init() {
 	f.StringVar(&initFlags.controller, "controller", "", "GitOps controller: argocd or flux")
 	f.StringVar(&initFlags.controllerVer, "controller-version", "", "Controller version (default: latest stable)")
 	f.StringVar(&initFlags.secrets, "secrets", "", "Secrets management: sealed-secrets, external-secrets, or sops")
+	f.StringVar(&initFlags.manifestType, "manifest-type", "", "App manifest format: kustomize or helm (default: kustomize)")
 	f.StringVar(&initFlags.environments, "environments", "", "Comma-separated list of environments (default: dev,staging,production)")
 	f.StringVar(&initFlags.repoPath, "repo-path", "", "Target repository path (default: ./gitops-repo)")
 	f.StringVar(&initFlags.clusterContext, "cluster-context", "", "Kubernetes cluster context")
@@ -313,6 +315,11 @@ func buildConfigFromFlags() (*models.BootstrapConfig, error) {
 		envs = models.DefaultEnvironments()
 	}
 
+	mt := models.ManifestType(initFlags.manifestType)
+	if mt == "" {
+		mt = models.ManifestKustomize
+	}
+
 	cfg := &models.BootstrapConfig{
 		Controller: models.ControllerConfig{
 			Type:    ct,
@@ -326,6 +333,7 @@ func buildConfigFromFlags() (*models.BootstrapConfig, error) {
 		RepoPath:        repoPath,
 		ClusterContext:  initFlags.clusterContext,
 		ScaffoldExample: initFlags.scaffoldExample,
+		ManifestType:    mt,
 	}
 
 	if err := cfg.Validate(); err != nil {

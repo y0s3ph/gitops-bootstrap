@@ -2,6 +2,129 @@
 
 Step-by-step guide to onboard a new application to this GitOps repository.
 
+{{- if eq (printf "%s" .ManifestType) "helm"}}
+
+## 1. Create the Helm chart
+
+Create a directory under `environments/base/` with your application name:
+
+```
+environments/base/<app-name>/
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── _helpers.tpl
+    ├── deployment.yaml
+    └── service.yaml
+```
+
+**Chart.yaml:**
+
+```yaml
+apiVersion: v2
+name: <app-name>
+description: Helm chart for <app-name>
+type: application
+version: 0.1.0
+appVersion: "latest"
+```
+
+**values.yaml** — default values for replicas, image, ports, resources, and probes.
+
+## 2. Create per-environment values
+
+For each environment, create a values file:
+
+```
+{{- range .Environments}}
+environments/{{.Name}}/<app-name>/values.yaml
+{{- end}}
+```
+
+Override environment-specific values (replicas, resources, image tags):
+
+```yaml
+replicaCount: 3
+
+image:
+  tag: "v1.2.3"
+```
+
+{{- if eq (printf "%s" .Controller.Type) "argocd"}}
+## 3. Create ArgoCD Application definitions
+
+For each environment, create an Application YAML in `apps/`:
+
+```
+{{- range .Environments}}
+apps/<app-name>-{{.Name}}.yaml
+{{- end}}
+```
+
+Each Application points to the chart with environment-specific values:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: <app-name>-<environment>
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: <this-repo-url>
+    targetRevision: HEAD
+    path: environments/base/<app-name>
+    helm:
+      releaseName: <app-name>
+      valueFiles:
+        - ../../environments/<environment>/<app-name>/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: <environment>
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+```
+{{- else}}
+## 3. Create Flux HelmRelease definitions
+
+For each environment, create a HelmRelease YAML in `apps/`:
+
+```
+{{- range .Environments}}
+apps/<app-name>-{{.Name}}.yaml
+{{- end}}
+```
+
+Each HelmRelease points to the chart with environment-specific values:
+
+```yaml
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: <app-name>-<environment>
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  releaseName: <app-name>
+  targetNamespace: <environment>
+  chart:
+    spec:
+      chart: ./environments/base/<app-name>
+      sourceRef:
+        kind: GitRepository
+        name: gitops-repo
+        namespace: flux-system
+  values:
+    replicaCount: <replica-count>
+```
+{{- end}}
+
+{{- else}}
+
 ## 1. Create the base manifests
 
 Create a directory under `environments/base/` with your application name:
@@ -124,6 +247,8 @@ spec:
 ```
 {{- end}}
 
+{{- end}}
+
 ## 4. Commit and push
 
 ```bash
@@ -140,12 +265,22 @@ The root Kustomization will detect the new files and Flux will reconcile them on
 
 ## Quick checklist
 
+{{- if eq (printf "%s" .ManifestType) "helm"}}
+- [ ] Helm chart in `environments/base/<app>/`
+- [ ] Values file per environment in `environments/<env>/<app>/values.yaml`
+{{- if eq (printf "%s" .Controller.Type) "argocd"}}
+- [ ] ArgoCD Application per environment in `apps/`
+{{- else}}
+- [ ] Flux HelmRelease per environment in `apps/`
+{{- end}}
+{{- else}}
 - [ ] Base manifests in `environments/base/<app>/`
 - [ ] Overlay per environment in `environments/<env>/<app>/`
 {{- if eq (printf "%s" .Controller.Type) "argocd"}}
 - [ ] ArgoCD Application per environment in `apps/`
 {{- else}}
 - [ ] Flux Kustomization per environment in `apps/`
+{{- end}}
 {{- end}}
 - [ ] Image tag set (do not use `:latest` in staging/production)
 - [ ] Resource requests and limits defined
