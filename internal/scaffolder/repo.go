@@ -29,6 +29,11 @@ func New(cfg *models.BootstrapConfig) *Scaffolder {
 	}
 }
 
+// Result returns the current scaffolding result (created and skipped files).
+func (s *Scaffolder) Result() *Result {
+	return &s.result
+}
+
 // Scaffold generates the full GitOps repository structure.
 // It is idempotent: existing files are never overwritten.
 func (s *Scaffolder) Scaffold() (*Result, error) {

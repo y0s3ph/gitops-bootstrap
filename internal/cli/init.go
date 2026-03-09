@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
+	"github.com/y0s3ph/gostrap/internal/config"
 	"github.com/y0s3ph/gostrap/internal/installer"
 	"github.com/y0s3ph/gostrap/internal/models"
 	"github.com/y0s3ph/gostrap/internal/scaffolder"
@@ -99,6 +100,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 		for _, f := range result.Skipped {
 			fmt.Printf("  %s %s\n", dimStyle.Render("·"), f)
 		}
+	}
+
+	if err := config.Save(cfg.RepoPath, cfg); err != nil {
+		return fmt.Errorf("saving repo config: %w", err)
 	}
 
 	shouldInstall := cfg.ClusterContext != "" && !initFlags.skipInstall
