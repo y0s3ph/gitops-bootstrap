@@ -68,14 +68,22 @@ type EnvironmentConfig struct {
 	RequirePR bool   `yaml:"require_pr"`
 }
 
+type ManifestType string
+
+const (
+	ManifestKustomize ManifestType = "kustomize"
+	ManifestHelm      ManifestType = "helm"
+)
+
 type ApplicationConfig struct {
-	Name       string         `yaml:"name"`
-	Type       string         `yaml:"type"`
-	Port       int            `yaml:"port"`
-	Replicas   map[string]int `yaml:"replicas"`
-	HasIngress bool           `yaml:"has_ingress"`
-	HasHPA     bool           `yaml:"has_hpa"`
-	HPA        HPAConfig      `yaml:"hpa,omitempty"`
+	Name         string         `yaml:"name"`
+	Type         string         `yaml:"type"`
+	ManifestType ManifestType   `yaml:"manifest_type"`
+	Port         int            `yaml:"port"`
+	Replicas     map[string]int `yaml:"replicas"`
+	HasIngress   bool           `yaml:"has_ingress"`
+	HasHPA       bool           `yaml:"has_hpa"`
+	HPA          HPAConfig      `yaml:"hpa,omitempty"`
 }
 
 type HPAConfig struct {
@@ -106,6 +114,7 @@ type BootstrapConfig struct {
 	RepoPath         string                 `yaml:"repo_path"`
 	ClusterContext   string                 `yaml:"cluster_context,omitempty"`
 	ScaffoldExample  bool                   `yaml:"scaffold_example"`
+	ManifestType     ManifestType           `yaml:"manifest_type,omitempty"`
 }
 
 func DefaultEnvironments() []EnvironmentConfig {

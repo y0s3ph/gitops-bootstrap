@@ -35,6 +35,7 @@ func Run() (*models.BootstrapConfig, error) {
 		controllerType string
 		controllerVer  string
 		secretsType    string
+		manifestType   string
 		envsRaw        string
 		scaffoldExample bool
 		repoPath       string
@@ -86,6 +87,14 @@ func Run() (*models.BootstrapConfig, error) {
 
 	envForm := huh.NewForm(
 		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Application manifest format").
+				Options(
+					huh.NewOption("Kustomize (plain YAML with overlays)", "kustomize"),
+					huh.NewOption("Helm (chart with values per environment)", "helm"),
+				).
+				Value(&manifestType),
+
 			huh.NewInput().
 				Title("Environments to create (comma-separated)").
 				Placeholder("dev,staging,production").
@@ -127,6 +136,10 @@ func Run() (*models.BootstrapConfig, error) {
 	envs := parseEnvironments(envsRaw)
 
 	st := models.SecretsType(secretsType)
+	mt := models.ManifestType(manifestType)
+	if mt == "" {
+		mt = models.ManifestKustomize
+	}
 	cfg := &models.BootstrapConfig{
 		Controller: models.ControllerConfig{
 			Type:    ct,
@@ -140,6 +153,7 @@ func Run() (*models.BootstrapConfig, error) {
 		RepoPath:        repoPath,
 		ClusterContext:  clusterCtx,
 		ScaffoldExample: scaffoldExample,
+		ManifestType:    mt,
 	}
 
 	if err := cfg.Validate(); err != nil {

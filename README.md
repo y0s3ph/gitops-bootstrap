@@ -23,7 +23,7 @@ From zero to GitOps in one command — opinionated CLI to bootstrap a production
 - [Planned CLI Interface](#planned-cli-interface)
 - [Design Decisions](#design-decisions)
   - [Why App of Apps (ArgoCD) / Kustomization chain (Flux)?](#why-app-of-apps-argocd--kustomization-chain-flux)
-  - [Why Kustomize over Helm for app manifests?](#why-kustomize-over-helm-for-app-manifests)
+  - [Why Kustomize as default (with Helm as option)?](#why-kustomize-as-default-with-helm-as-option)
   - [Why Sealed Secrets as default?](#why-sealed-secrets-as-default)
   - [Secrets management: scalability and limitations](#secrets-management-scalability-and-limitations)
   - [Why Go?](#why-go)
@@ -71,7 +71,7 @@ Running `gostrap init` on a cluster produces:
 - GitOps controller installed and configured (ArgoCD by default, Flux as alternative)
 - Namespace structure for the controller and managed environments
 - RBAC for the GitOps controller (least privilege)
-- Secrets management operator (Sealed Secrets by default, External Secrets Operator as alternative)
+- Secrets management (Sealed Secrets, External Secrets Operator, or SOPS with age)
 - Optional: Ingress for the ArgoCD UI with TLS
 
 ### In the Git Repository
@@ -87,9 +87,15 @@ gitops-repo/
 │   │   ├── namespace.yaml
 │   │   ├── kustomization.yaml     # Pinned Flux version
 │   │   └── gotk-sync.yaml         # GitRepository + root Kustomization
-│   └── sealed-secrets/             # Secrets management setup
+│   ├── sealed-secrets/             # Sealed Secrets (if selected)
+│   │   ├── kustomization.yaml
+│   │   └── sealedsecret-example.yaml
+│   ├── external-secrets/           # ESO (if selected)
+│   │   ├── kustomization.yaml
+│   │   └── clustersecretstore-example.yaml
+│   └── sops/                       # SOPS (if selected)
 │       ├── kustomization.yaml
-│       └── sealedsecret-example.yaml
+│       └── secret-example.yaml
 │
 ├── apps/                           # Controller-specific app definitions
 │   ├── _root.yaml                  # Root Application (ArgoCD) or GitRepository+Kustomization (Flux)
@@ -191,7 +197,7 @@ This separation gives you auditable deployments (every cluster change is a Git c
 | Phase | Milestone | Status | Summary |
 |---|---|---|---|
 | **1 — Core Bootstrap** | [v0.1.0](https://github.com/y0s3ph/gostrap/milestone/1?closed=1) | Done | Interactive wizard, repo scaffolding, ArgoCD installer, Sealed Secrets, documentation generation |
-| **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2) | In Progress | Flux CD controller **(done)**, External Secrets Operator **(done)**, SOPS **(done)**, multi-cluster, Helm chart support |
+| **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2) | In Progress | Flux CD **(done)**, External Secrets Operator **(done)**, SOPS **(done)**, Helm chart support **(done)**, multi-cluster |
 | **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | Planned | `add-app`, `add-env`, `validate`, `diff`, `promote` commands, pre-commit hooks |
 | **4 — Platform Integration** | [v0.4.0](https://github.com/y0s3ph/gostrap/milestone/4) | Planned | Notifications, Image Updater, CI workflow templates, webhooks, terminal dashboard |
 
@@ -227,7 +233,7 @@ graph TD
 
 | Component | Technology | Rationale |
 |---|---|---|
-| Language | **Go 1.23+** | Native to the Kubernetes ecosystem; compiles to a single static binary with zero runtime dependencies |
+| Language | **Go 1.24+** | Native to the Kubernetes ecosystem; compiles to a single static binary with zero runtime dependencies |
 | CLI framework | **Cobra** | De facto standard for Go CLIs — used by kubectl, helm, gh, and most CNCF tools |
 | Terminal UI | **Bubble Tea + Lip Gloss** (Charmbracelet) | Rich interactive TUIs with progress indicators, selection menus, and styled output |
 | Template engine | **text/template** (stdlib) | Go's built-in template engine — no external dependency, sufficient for YAML manifest generation |
@@ -249,6 +255,7 @@ gostrap init \
   --controller argocd \
   --controller-version 2.13.1 \
   --secrets sealed-secrets \
+  --manifest-type kustomize \
   --environments dev,staging,production \
   --repo-path ./gitops-repo \
   --cluster-context prod-eu-west-1
@@ -290,6 +297,8 @@ controller:
 
 secrets:
   type: sealed-secrets
+
+manifest_type: kustomize   # or "helm"
 
 environments:
   - name: dev
@@ -350,6 +359,10 @@ $ gostrap init
       External Secrets Operator (AWS SM, Vault, etc.)
       SOPS (git-native encryption)
 
+  ? Application manifest format:
+    ❯ Kustomize (plain YAML with overlays)
+      Helm (chart with values per environment)
+
   ? Environments to create: (dev, staging, production)
 
   ? Scaffold an example application? (Y/n)
@@ -383,12 +396,15 @@ For **ArgoCD**, gostrap uses the [App of Apps pattern](https://argo-cd.readthedo
 - Self-service: dev teams add a YAML to `apps/` to onboard.
 - Declarative: the list of applications is version-controlled.
 
-### Why Kustomize over Helm for app manifests?
+### Why Kustomize as default (with Helm as option)?
 
-- Kustomize works with plain YAML — no templating language to learn.
+gostrap supports both **Kustomize** (default) and **Helm** for application manifests. Kustomize is the default because:
+
+- Works with plain YAML — no templating language to learn.
 - Overlays make environment differences explicit and auditable.
 - Better for GitOps: `kustomize build` output is deterministic.
-- Helm is used for installing third-party software (ArgoCD, cert-manager), not for application manifests.
+
+However, teams already invested in Helm can choose `--manifest-type helm` to generate a standard chart structure with per-environment `values.yaml` files. ArgoCD uses `source.helm` with `valueFiles`; Flux uses `HelmRelease` CRDs.
 
 ### Why Sealed Secrets as default?
 
@@ -491,7 +507,7 @@ gostrap/
 
 ### Prerequisites
 
-- [Go 1.23+](https://go.dev/dl/)
+- [Go 1.24+](https://go.dev/dl/)
 - [Docker](https://docs.docker.com/get-docker/)
 - [kind](https://kind.sigs.k8s.io/) — `go install sigs.k8s.io/kind@latest`
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
@@ -529,6 +545,7 @@ Scripts in `hack/` manage a local [kind](https://kind.sigs.k8s.io/) cluster prec
 go run ./cmd/gostrap/ init \
   --controller argocd \
   --secrets sealed-secrets \
+  --manifest-type kustomize \
   --environments dev,staging,production \
   --repo-path ./test-repo \
   --cluster-context kind-gitops-dev

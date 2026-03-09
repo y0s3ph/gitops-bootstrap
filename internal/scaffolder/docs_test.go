@@ -287,6 +287,48 @@ func TestScaffoldSOPS_SecretsDocFluxSpecific(t *testing.T) {
 	assert.Contains(t, content, "kustomizations")
 }
 
+// --- Helm docs tests ---
+
+func TestScaffoldHelm_AddingAppDocShowsHelmSteps(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testConfig(repoPath)
+	cfg.ManifestType = models.ManifestHelm
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/ADDING-AN-APP.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "Helm chart")
+	assert.Contains(t, content, "Chart.yaml")
+	assert.Contains(t, content, "values.yaml")
+	assert.Contains(t, content, "helm:")
+	assert.NotContains(t, content, "kustomization.yaml")
+}
+
+func TestScaffoldHelm_FluxAddingAppDocShowsHelmRelease(t *testing.T) {
+	root := t.TempDir()
+	repoPath := filepath.Join(root, "repo")
+	cfg := testFluxConfig(repoPath)
+	cfg.ManifestType = models.ManifestHelm
+
+	s := New(cfg)
+	_, err := s.Scaffold()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(repoPath, "docs/ADDING-AN-APP.md"))
+	require.NoError(t, err)
+
+	content := string(data)
+	assert.Contains(t, content, "HelmRelease")
+	assert.Contains(t, content, "helm.toolkit.fluxcd.io")
+	assert.NotContains(t, content, "argoproj.io")
+}
+
 func TestScaffoldESO_SecretsDocHasTroubleshooting(t *testing.T) {
 	root := t.TempDir()
 	repoPath := filepath.Join(root, "repo")
