@@ -2,6 +2,8 @@
 
 Thanks for your interest in contributing! This guide will help you get started.
 
+New here? Browse the [good first issues](https://github.com/y0s3ph/gostrap/contribute) for tasks designed for first-time contributors.
+
 ## Getting Started
 
 1. **Fork** the repository and clone your fork
