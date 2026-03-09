@@ -1,11 +1,43 @@
 # gostrap
 
-> From zero to GitOps in one command — opinionated CLI to bootstrap a production-ready GitOps workflow on any Kubernetes cluster.
-
 [![CI](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml/badge.svg)](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Go 1.24+](https://img.shields.io/badge/go-1.24%2B-00ADD8.svg)](https://go.dev/)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-jph91-0A66C2.svg?logo=linkedin)](https://www.linkedin.com/in/jph91/)
+
+From zero to GitOps in one command — opinionated CLI to bootstrap a production-ready GitOps workflow on any Kubernetes cluster.
+
+
+## Table of Contents
+
+- [The Problem](#the-problem)
+- [Core Principles](#core-principles)
+- [What It Sets Up](#what-it-sets-up)
+  - [In the Cluster](#in-the-cluster)
+  - [In the Git Repository](#in-the-git-repository)
+- [How It Fits In Your Workflow](#how-it-fits-in-your-workflow)
+- [Roadmap](#roadmap)
+- [Architecture](#architecture)
+  - [Component Responsibilities](#component-responsibilities)
+- [Tech Stack](#tech-stack)
+- [Planned CLI Interface](#planned-cli-interface)
+- [Design Decisions](#design-decisions)
+  - [Why App of Apps (ArgoCD) / Kustomization chain (Flux)?](#why-app-of-apps-argocd--kustomization-chain-flux)
+  - [Why Kustomize over Helm for app manifests?](#why-kustomize-over-helm-for-app-manifests)
+  - [Why Sealed Secrets as default?](#why-sealed-secrets-as-default)
+  - [Secrets management: scalability and limitations](#secrets-management-scalability-and-limitations)
+  - [Why Go?](#why-go)
+  - [Why not just use a Helm chart for everything?](#why-not-just-use-a-helm-chart-for-everything)
+- [Project Structure (Planned)](#project-structure-planned)
+- [Related & Prior Art](#related--prior-art)
+- [Development](#development)
+  - [Prerequisites](#prerequisites)
+  - [Build](#build)
+  - [Test](#test)
+  - [Local Kubernetes Cluster](#local-kubernetes-cluster)
+  - [Quick Smoke Test](#quick-smoke-test)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
