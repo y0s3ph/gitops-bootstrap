@@ -648,12 +648,9 @@ go run ./cmd/gostrap/ add-app payments --port 3000 --repo-path ./test-repo
 
 ## Contributing
 
-Contributions are welcome. Please open an issue to discuss your idea before submitting a PR.
+Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) for setup instructions, code conventions, and PR guidelines.
 
-This project follows:
-- [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
-- Trunk-based development with short-lived feature branches.
-- All code must pass `golangci-lint run` and `go test ./...` before merge.
+**TL;DR**: fork → branch → code → `make test && make lint` → PR. Follow [Conventional Commits](https://www.conventionalcommits.org/).
 
 ## License
 
