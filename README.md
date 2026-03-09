@@ -76,7 +76,10 @@ gostrap init
 gostrap add-app payments --port 3000 --repo-path ./gitops-repo
 gostrap add-app frontend --port 3000 --repo-path ./gitops-repo
 
-# 3. Commit and push — the GitOps controller picks up the rest
+# 3. Add a new environment (creates overlays for all existing apps)
+gostrap add-env qa --auto-sync --prune --repo-path ./gitops-repo
+
+# 4. Commit and push — the GitOps controller picks up the rest
 cd gitops-repo
 git init && git add -A && git commit -m "feat: initial gitops structure"
 git remote add origin <your-repo-url>
@@ -274,7 +277,7 @@ This separation gives you auditable deployments (every cluster change is a Git c
 |---|---|---|---|
 | **1 — Core Bootstrap** | [v0.1.0](https://github.com/y0s3ph/gostrap/milestone/1?closed=1) | Done | Interactive wizard, repo scaffolding, ArgoCD installer, Sealed Secrets, documentation generation |
 | **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2?closed=1) | Done | Flux CD, External Secrets Operator, SOPS, Helm chart support |
-| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env`, `validate`, `diff`, `promote` commands, pre-commit hooks, multi-cluster hub-spoke |
+| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env` **(done)**, `validate`, `diff`, `promote` commands, pre-commit hooks, multi-cluster hub-spoke |
 | **4 — Platform Integration** | [v0.4.0](https://github.com/y0s3ph/gostrap/milestone/4) | Planned | Notifications, Image Updater, CI workflow templates, webhooks, terminal dashboard |
 
 ## Architecture
@@ -345,8 +348,11 @@ gostrap add-app --repo-path ./gitops-repo
 # Add a new application (non-interactive)
 gostrap add-app payments --port 3000 --repo-path ./gitops-repo
 
-# Add a new environment (planned — v0.3.0)
-gostrap add-env qa --base staging
+# Add a new environment (interactive — prompts for name and settings)
+gostrap add-env --repo-path ./gitops-repo
+
+# Add a new environment (non-interactive)
+gostrap add-env qa --auto-sync --prune --repo-path ./gitops-repo
 
 # Validate repo structure (planned — v0.3.0)
 gostrap validate ./gitops-repo
@@ -527,7 +533,8 @@ gostrap/
 │   ├── cli/
 │   │   ├── root.go                 # Root command registration
 │   │   ├── init.go                 # gostrap init command
-│   │   └── add_app.go              # gostrap add-app command
+│   │   ├── add_app.go              # gostrap add-app command
+│   │   └── add_env.go              # gostrap add-env command
 │   ├── config/
 │   │   └── config.go               # .gostrap.yaml persistence (save/load repo config)
 │   ├── wizard/
@@ -537,6 +544,7 @@ gostrap/
 │   │   ├── repo.go                 # Repo structure generation
 │   │   ├── apps.go                 # Application manifest generation
 │   │   ├── environments.go         # Environment overlay generation
+│   │   ├── env.go                  # Single-environment scaffolding (add-env)
 │   │   └── docs.go                 # Documentation generation
 │   ├── installer/
 │   │   ├── argocd.go               # ArgoCD installation via Helm Go SDK
