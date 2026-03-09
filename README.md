@@ -650,6 +650,8 @@ go run ./cmd/gostrap/ add-app payments --port 3000 --repo-path ./test-repo
 
 Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) for setup instructions, code conventions, and PR guidelines.
 
+Looking for a place to start? Check the [good first issues](https://github.com/y0s3ph/gostrap/contribute).
+
 **TL;DR**: fork → branch → code → `make test && make lint` → PR. Follow [Conventional Commits](https://www.conventionalcommits.org/).
 
 ## License
