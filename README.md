@@ -10,6 +10,8 @@ From zero to GitOps in one command — opinionated CLI to bootstrap a production
 
 ## Table of Contents
 
+- [Installation](#installation)
+- [Quick Start](#quick-start)
 - [The Problem](#the-problem)
 - [Core Principles](#core-principles)
 - [What It Sets Up](#what-it-sets-up)
@@ -40,6 +42,78 @@ From zero to GitOps in one command — opinionated CLI to bootstrap a production
 - [License](#license)
 
 ---
+
+## Installation
+
+### From source (recommended for now)
+
+```bash
+go install github.com/y0s3ph/gostrap/cmd/gostrap@latest
+```
+
+Or clone and build:
+
+```bash
+git clone https://github.com/y0s3ph/gostrap.git
+cd gostrap
+go build -o gostrap ./cmd/gostrap/
+sudo mv gostrap /usr/local/bin/
+```
+
+### Prerequisites
+
+- [Go 1.24+](https://go.dev/dl/) (for building from source)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) (for cluster installation)
+- A Kubernetes cluster (or [kind](https://kind.sigs.k8s.io/) for local testing)
+
+## Quick Start
+
+```bash
+# 1. Bootstrap a GitOps repo + install ArgoCD on your cluster
+gostrap init
+
+# 2. Add applications to the repo
+gostrap add-app payments --port 3000 --repo-path ./gitops-repo
+gostrap add-app frontend --port 3000 --repo-path ./gitops-repo
+
+# 3. Commit and push — the GitOps controller picks up the rest
+cd gitops-repo
+git init && git add -A && git commit -m "feat: initial gitops structure"
+git remote add origin <your-repo-url>
+git push -u origin main
+```
+
+The interactive wizard guides you through every choice:
+
+```
+$ gostrap init
+
+  gostrap   From zero to GitOps in one command
+
+  ? Select GitOps controller:    ArgoCD / Flux CD
+  ? Select secrets management:   Sealed Secrets / ESO / SOPS
+  ? Application manifest format: Kustomize / Helm
+  ? Environments to create:      dev, staging, production
+  ? Scaffold an example app?     Yes
+  ? Target repo path:            ./gitops-repo
+  ? Cluster context:             kind-gitops-dev
+
+  ✓ ArgoCD installed and ready
+  ✓ Sealed Secrets ready
+  ✓ Repository structure generated
+```
+
+For CI/automation, skip the wizard entirely:
+
+```bash
+gostrap init \
+  --controller argocd \
+  --secrets sealed-secrets \
+  --manifest-type kustomize \
+  --environments dev,staging,production \
+  --repo-path ./gitops-repo \
+  --cluster-context prod-eu-west-1
+```
 
 ## The Problem
 
@@ -512,12 +586,15 @@ gostrap/
 
 ## Development
 
+> For contributors and local development. If you just want to use gostrap, see [Installation](#installation).
+
 ### Prerequisites
 
 - [Go 1.24+](https://go.dev/dl/)
 - [Docker](https://docs.docker.com/get-docker/)
 - [kind](https://kind.sigs.k8s.io/) — `go install sigs.k8s.io/kind@latest`
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [golangci-lint](https://golangci-lint.run/welcome/install/) — `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
 
 ### Build
 
