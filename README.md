@@ -7,6 +7,9 @@
 
 From zero to GitOps in one command — opinionated CLI to bootstrap a production-ready GitOps workflow on any Kubernetes cluster.
 
+<p align="center">
+  <img src="demo.gif" alt="gostrap demo" width="700">
+</p>
 
 ## Table of Contents
 
