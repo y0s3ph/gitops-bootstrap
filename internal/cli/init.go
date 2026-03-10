@@ -17,6 +17,7 @@ import (
 var successStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#04B575"))
 var dimStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#999999"))
 var warnStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFAA00"))
+var lipglossErrorStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF4444"))
 
 var initFlags struct {
 	configFile      string

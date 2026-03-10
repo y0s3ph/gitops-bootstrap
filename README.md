@@ -277,7 +277,7 @@ This separation gives you auditable deployments (every cluster change is a Git c
 |---|---|---|---|
 | **1 — Core Bootstrap** | [v0.1.0](https://github.com/y0s3ph/gostrap/milestone/1?closed=1) | Done | Interactive wizard, repo scaffolding, ArgoCD installer, Sealed Secrets, documentation generation |
 | **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2?closed=1) | Done | Flux CD, External Secrets Operator, SOPS, Helm chart support |
-| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env` **(done)**, `validate`, `diff`, `promote` commands, pre-commit hooks, multi-cluster hub-spoke |
+| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env` **(done)**, `validate` **(done)**, `diff`, `promote` commands, pre-commit hooks, multi-cluster hub-spoke |
 | **4 — Platform Integration** | [v0.4.0](https://github.com/y0s3ph/gostrap/milestone/4) | Planned | Notifications, Image Updater, CI workflow templates, webhooks, terminal dashboard |
 
 ## Architecture
@@ -354,7 +354,7 @@ gostrap add-env --repo-path ./gitops-repo
 # Add a new environment (non-interactive)
 gostrap add-env qa --auto-sync --prune --repo-path ./gitops-repo
 
-# Validate repo structure (planned — v0.3.0)
+# Validate repo structure
 gostrap validate ./gitops-repo
 
 # Compare environments (planned — v0.3.0)
@@ -534,7 +534,10 @@ gostrap/
 │   │   ├── root.go                 # Root command registration
 │   │   ├── init.go                 # gostrap init command
 │   │   ├── add_app.go              # gostrap add-app command
-│   │   └── add_env.go              # gostrap add-env command
+│   │   ├── add_env.go              # gostrap add-env command
+│   │   └── validate.go             # gostrap validate command
+│   ├── validator/
+│   │   └── validator.go            # Repo structure validation engine
 │   ├── config/
 │   │   └── config.go               # .gostrap.yaml persistence (save/load repo config)
 │   ├── wizard/
