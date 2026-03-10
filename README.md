@@ -277,7 +277,7 @@ This separation gives you auditable deployments (every cluster change is a Git c
 |---|---|---|---|
 | **1 — Core Bootstrap** | [v0.1.0](https://github.com/y0s3ph/gostrap/milestone/1?closed=1) | Done | Interactive wizard, repo scaffolding, ArgoCD installer, Sealed Secrets, documentation generation |
 | **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2?closed=1) | Done | Flux CD, External Secrets Operator, SOPS, Helm chart support |
-| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env` **(done)**, `validate` **(done)**, `diff` **(done)**, `promote` commands, pre-commit hooks, multi-cluster hub-spoke |
+| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env` **(done)**, `validate` **(done)**, `diff` **(done)**, `promote` **(done)**, pre-commit hooks, multi-cluster hub-spoke |
 | **4 — Platform Integration** | [v0.4.0](https://github.com/y0s3ph/gostrap/milestone/4) | Planned | Notifications, Image Updater, CI workflow templates, webhooks, terminal dashboard |
 
 ## Architecture
@@ -362,8 +362,10 @@ gostrap diff dev staging
 gostrap diff dev production --app my-api
 gostrap diff staging production --repo-path ./gitops-repo
 
-# Promote an app between environments (planned — v0.3.0)
-gostrap promote my-api --from staging --to production
+# Promote an app between environments
+gostrap promote my-api --from dev --to staging
+gostrap promote my-api --from staging --to production --dry-run
+gostrap promote --from dev --to staging --yes             # all apps, skip confirm
 ```
 
 ### Example Config File
@@ -538,11 +540,14 @@ gostrap/
 │   │   ├── add_app.go              # gostrap add-app command
 │   │   ├── add_env.go              # gostrap add-env command
 │   │   ├── validate.go             # gostrap validate command
-│   │   └── diff.go                 # gostrap diff command
+│   │   ├── diff.go                 # gostrap diff command
+│   │   └── promote.go              # gostrap promote command
 │   ├── validator/
 │   │   └── validator.go            # Repo structure validation engine
 │   ├── differ/
 │   │   └── differ.go               # Environment diff engine (LCS-based)
+│   ├── promoter/
+│   │   └── promoter.go             # Environment promotion engine
 │   ├── config/
 │   │   └── config.go               # .gostrap.yaml persistence (save/load repo config)
 │   ├── wizard/
