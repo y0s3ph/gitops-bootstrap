@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="gostrap.png" alt="gostrap logo" width="200">
+</p>
+
 # gostrap
 
 [![CI](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml/badge.svg)](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml)
