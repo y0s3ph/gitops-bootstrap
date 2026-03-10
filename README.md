@@ -1,13 +1,13 @@
-<p align="center">
-  <img src="gostrap.png" alt="gostrap logo" width="480">
-</p>
-
 # gostrap
 
 [![CI](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml/badge.svg)](https://github.com/y0s3ph/gostrap/actions/workflows/ci.yml)
 [![Go 1.24+](https://img.shields.io/badge/go-1.24%2B-00ADD8.svg)](https://go.dev/)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-jph91-0A66C2.svg?logo=linkedin)](https://www.linkedin.com/in/jph91/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+<p align="center">
+  <img src="gostrap.png" alt="gostrap logo" width="480">
+</p>
 
 From zero to GitOps in one command — opinionated CLI to bootstrap a production-ready GitOps workflow on any Kubernetes cluster.
 
