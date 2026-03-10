@@ -57,6 +57,10 @@ func (s *Scaffolder) Scaffold() (*Result, error) {
 		return nil, fmt.Errorf("rendering documentation: %w", err)
 	}
 
+	if err := s.renderPreCommitConfig(); err != nil {
+		return nil, fmt.Errorf("rendering pre-commit config: %w", err)
+	}
+
 	if s.config.ScaffoldExample {
 		if err := s.ScaffoldApp("example-api", 8080); err != nil {
 			return nil, fmt.Errorf("scaffolding example app: %w", err)

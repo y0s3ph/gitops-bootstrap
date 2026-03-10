@@ -226,7 +226,8 @@ gitops-repo/
 │   ├── SECRETS.md                  # How to manage secrets in this setup
 │   └── TROUBLESHOOTING.md          # Common issues and fixes
 │
-└── .gostrap.yaml                   # Repo config (used by add-app, add-env)
+├── .gostrap.yaml                   # Repo config (used by add-app, add-env)
+└── .pre-commit-config.yaml         # Pre-commit hooks (YAML lint, kubeconform, gostrap validate)
 ```
 
 ## How It Fits In Your Workflow
@@ -277,7 +278,7 @@ This separation gives you auditable deployments (every cluster change is a Git c
 |---|---|---|---|
 | **1 — Core Bootstrap** | [v0.1.0](https://github.com/y0s3ph/gostrap/milestone/1?closed=1) | Done | Interactive wizard, repo scaffolding, ArgoCD installer, Sealed Secrets, documentation generation |
 | **2 — Flux & Advanced Secrets** | [v0.2.0](https://github.com/y0s3ph/gostrap/milestone/2?closed=1) | Done | Flux CD, External Secrets Operator, SOPS, Helm chart support |
-| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env` **(done)**, `validate` **(done)**, `diff` **(done)**, `promote` **(done)**, pre-commit hooks, multi-cluster hub-spoke |
+| **3 — Day-2 Operations** | [v0.3.0](https://github.com/y0s3ph/gostrap/milestone/3) | In Progress | `add-app` **(done)**, `add-env` **(done)**, `validate` **(done)**, `diff` **(done)**, `promote` **(done)**, pre-commit hooks **(done)**, multi-cluster hub-spoke |
 | **4 — Platform Integration** | [v0.4.0](https://github.com/y0s3ph/gostrap/milestone/4) | Planned | Notifications, Image Updater, CI workflow templates, webhooks, terminal dashboard |
 
 ## Architecture
@@ -366,6 +367,28 @@ gostrap diff staging production --repo-path ./gitops-repo
 gostrap promote my-api --from dev --to staging
 gostrap promote my-api --from staging --to production --dry-run
 gostrap promote --from dev --to staging --yes             # all apps, skip confirm
+```
+
+### Pre-commit Hooks
+
+Every repository scaffolded by gostrap includes a `.pre-commit-config.yaml` with three layers of validation:
+
+| Hook | What it does |
+|------|-------------|
+| **check-yaml** | YAML syntax validation (skips Go/Helm templates) |
+| **kubeconform** | Kubernetes manifest schema validation (skips CRDs) |
+| **gostrap validate** | Full structural integrity check (config, overlays, app definitions) |
+
+Plus `trailing-whitespace`, `end-of-file-fixer`, and `check-merge-conflict` for general hygiene.
+
+**Setup** (in the generated GitOps repo):
+
+```bash
+pip install pre-commit
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
 ```
 
 ### Example Config File
@@ -558,7 +581,8 @@ gostrap/
 │   │   ├── apps.go                 # Application manifest generation
 │   │   ├── environments.go         # Environment overlay generation
 │   │   ├── env.go                  # Single-environment scaffolding (add-env)
-│   │   └── docs.go                 # Documentation generation
+│   │   ├── docs.go                 # Documentation generation
+│   │   └── hooks.go                # Pre-commit config generation
 │   ├── installer/
 │   │   ├── argocd.go               # ArgoCD installation via Helm Go SDK
 │   │   ├── flux.go                 # Flux installation
@@ -572,6 +596,7 @@ gostrap/
 │   │   ├── platform/
 │   │   ├── policies/
 │   │   ├── docs/
+│   │   ├── hooks/                  # Pre-commit hook templates
 │   │   └── embed.go                # //go:embed directives
 │   └── models/
 │       └── config.go               # Configuration structs with validation tags

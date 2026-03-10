@@ -1,0 +1,37 @@
+# Pre-commit hooks for GitOps repository validation
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# Docs: https://pre-commit.com
+
+repos:
+  # YAML syntax validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+        args: ['--allow-multiple-documents', '--unsafe']
+        exclude: '(templates/|\.tmpl$)'
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+
+  # Kubernetes manifest validation
+  - repo: https://github.com/yannh/kubeconform
+    rev: v0.6.6
+    hooks:
+      - id: kubeconform
+        args:
+          - '-summary'
+          - '-skip'
+          - 'CustomResourceDefinition,Application,Kustomization,HelmRelease,GitRepository,SealedSecret,ClusterSecretStore,ExternalSecret'
+        exclude: '(bootstrap/|\.tmpl$)'
+
+  # gostrap validate (local hook — requires gostrap in PATH)
+  - repo: local
+    hooks:
+      - id: gostrap-validate
+        name: gostrap validate
+        entry: gostrap validate .
+        language: system
+        pass_filenames: false
+        always_run: true
